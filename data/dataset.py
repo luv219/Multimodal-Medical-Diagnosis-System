@@ -51,6 +51,14 @@ class REFLACXWithClinicalDataset(data.Dataset):
 
         self.image_size = image_size
         self.df = pd.read_csv('reflacx_with_clinical.csv', index_col=0)
+
+        # Support path override: set XAMI_MIMIC_PATH env var if your data is elsewhere
+        # e.g. export XAMI_MIMIC_PATH=E:\MIMIC-Data
+        path_override = os.environ.get('XAMI_MIMIC_PATH')
+        if path_override:
+            self.df['image_path'] = self.df['image_path'].apply(
+                lambda p: p.replace(r'D:\XAMI-MIMIC', path_override).replace('D:/XAMI-MIMIC', path_override)
+            )
         self.clinical_cols = clinical_cols
         self.clinical_numerical_cols = clinical_numerical_cols
         self.clinical_categorical_cols = clinical_categorical_cols
@@ -139,9 +147,9 @@ class REFLACXWithClinicalDataset(data.Dataset):
         return len(self.df)
 
     def get_weights(self):
-        p_count = (self.df[self.labels_cols] == 1).sum(axis=0)
+        p_count = (self.df[self.labels_cols] == 1).sum(axis=0).values
         self.p_count = p_count
-        n_count = (self.df[self.labels_cols] == 0).sum(axis=0)
+        n_count = (self.df[self.labels_cols] == 0).sum(axis=0).values
         total = p_count + n_count
 
         # invert *opposite* weights to obtain weighted loss

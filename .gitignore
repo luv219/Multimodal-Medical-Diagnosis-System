@@ -7,3 +7,17 @@ test_0_8260__epoch300_WithClincal_dim32_2022-02-08 10_03_56_953198_result.zip
 *.zip
 /experiment_gramcam_with_diseases
 experiment_gramcam_with_diseases.zip
+
+# Virtual Environments
+/venv_gpu/
+/venv/
+.env/
+
+# Downloaded Datasets and Images
+/data/nih_chest_xray/images/
+/data/nih_chest_xray/*.tar.gz
+
+# Checkpoints and Logs
+/results/
+__pycache__/
+*.pyc

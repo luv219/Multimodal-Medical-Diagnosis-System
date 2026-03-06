@@ -9,11 +9,16 @@ import matplotlib.pyplot as plt
 
 from datetime import datetime
 from torch.utils.data import DataLoader
-from IPython.display import clear_output
+try:
+    from IPython.display import clear_output
+except ImportError:
+    def clear_output(wait=True):
+        pass
 from sklearn.metrics import accuracy_score, roc_auc_score, confusion_matrix
 
-from libauc.losses import AUCM_MultiLabel
-from libauc.optimizers import PESG
+# libauc imports - only needed for train_with_auc_margin_loss
+# from libauc.losses import AUCM_MultiLabel  # Deprecated in newer libauc
+# from libauc.optimizers import PESG
 
 from utils.print import print_block
 from utils.transform import transform_data
@@ -259,7 +264,7 @@ def train_with_auc_margin_loss(
                      lr=lr,
                      gamma=gamma,
                      margin=margin,
-                     weight_decay=weight_decay, device='cuda')
+                     weight_decay=weight_decay, device=device)
 
     best_val_auc = 0
 
@@ -537,10 +542,8 @@ def test_epoch(epoch, model, device, dataloader, loss_fn):
 
 
 def get_aus_loss(dataset):
-    imratio_list = [dataset.df[col].sum() / len(dataset)
-                for col in dataset.labels_cols]  # indicate the portion of positive cases.
-
-    loss_fn = AUCM_MultiLabel(imratio=imratio_list,
-                                num_classes=len(dataset.labels_cols))
-
-    return loss_fn
+    """AUC loss - requires libauc. Note: AUCM_MultiLabel API changed in newer libauc."""
+    raise NotImplementedError(
+        "train_with_auc_margin_loss uses deprecated libauc API (AUCM_MultiLabel). "
+        "Use run_train.py with train_with_chexnext for standard training."
+    )
