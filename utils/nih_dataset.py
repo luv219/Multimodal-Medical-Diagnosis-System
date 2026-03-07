@@ -50,16 +50,16 @@ def get_nih_dataloaders(train_csv_path, valid_csv_path, data_dir, batch_size=16,
     train_df, val_df, target_labels = prepare_nih_csv(train_csv_path, valid_csv_path, data_dir)
 
     train_transform = transforms.Compose([
-        transforms.Resize(256),
-        transforms.RandomCrop(224),
+        transforms.Resize(128),
+        transforms.RandomCrop(112),
         transforms.RandomHorizontalFlip(),
         transforms.ToTensor(),
         transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
     ])
 
     val_transform = transforms.Compose([
-        transforms.Resize(256),
-        transforms.CenterCrop(224),
+        transforms.Resize(128),
+        transforms.CenterCrop(112),
         transforms.ToTensor(),
         transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
     ])
@@ -67,7 +67,15 @@ def get_nih_dataloaders(train_csv_path, valid_csv_path, data_dir, batch_size=16,
     train_dataset = NIHChestDataset(train_df, target_labels, transform=train_transform)
     val_dataset = NIHChestDataset(val_df, target_labels, transform=val_transform)
 
-    train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, num_workers=num_workers)
-    val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False, num_workers=num_workers)
+    train_loader = DataLoader(
+        train_dataset, batch_size=batch_size, shuffle=True, 
+        num_workers=num_workers, pin_memory=True,
+        persistent_workers=(num_workers > 0)
+    )
+    val_loader = DataLoader(
+        val_dataset, batch_size=batch_size, shuffle=False, 
+        num_workers=num_workers, pin_memory=True,
+        persistent_workers=(num_workers > 0)
+    )
 
     return train_loader, val_loader

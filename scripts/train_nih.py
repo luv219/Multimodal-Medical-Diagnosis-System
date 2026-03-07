@@ -18,7 +18,7 @@ DATA_DIR = "./data/nih_chest_xray"
 TRAIN_CSV = "./cxr_code/data/train.csv"
 VALID_CSV = "./cxr_code/data/valid.csv"
 
-BATCH_SIZE = 32
+BATCH_SIZE = 128
 NUM_EPOCHS = 5
 LR = 1e-4
 NUM_CLASSES = 5
@@ -28,7 +28,7 @@ LABEL_NAMES = ["Atelectasis", "Cardiomegaly", "Consolidation", "Edema", "Effusio
 
 def train():
     print(f"Using device: {DEVICE}")
-    train_loader, val_loader = get_nih_dataloaders(TRAIN_CSV, VALID_CSV, DATA_DIR, BATCH_SIZE)
+    train_loader, val_loader = get_nih_dataloaders(TRAIN_CSV, VALID_CSV, DATA_DIR, BATCH_SIZE, num_workers=4)
     print(f"Loaded {len(train_loader.dataset)} training samples and {len(val_loader.dataset)} validation samples.")
     
     model = ImageOnlyModel(num_classes=NUM_CLASSES).to(DEVICE)
@@ -64,7 +64,7 @@ def train():
             
             train_loss += loss.item()
             
-            if (i + 1) % 50 == 0:
+            if (i + 1) % 20 == 0:
                 print(f"Epoch [{epoch+1}/{NUM_EPOCHS}], Step [{i+1}/{len(train_loader)}], Loss: {loss.item():.4f}")
         
         scheduler.step()
