@@ -1,6 +1,31 @@
 import os
 import pandas as pd
 import numpy as np
+
+
+def compute_pos_weights_from_csv(csv_path, label_names, fallback_pos_weight=5.0):
+    """
+    Read train.csv and compute per-class positive-to-negative weight ratios for BCEWithLogitsLoss.
+
+    For each class: pos_weight = num_negatives / num_positives (PyTorch convention).
+
+    Returns:
+        dict[str, float]: class name -> pos_weight
+    """
+    df = pd.read_csv(csv_path)
+    weights = {}
+    for name in label_names:
+        if name not in df.columns:
+            weights[name] = float(fallback_pos_weight)
+            continue
+        col = df[name]
+        n_pos = int((col == 1).sum())
+        n_neg = int((col == 0).sum())
+        if n_pos == 0:
+            weights[name] = float(fallback_pos_weight)
+        else:
+            weights[name] = float(n_neg) / float(n_pos)
+    return weights
 import torch
 from torch.utils.data import Dataset, DataLoader
 from torchvision import transforms
