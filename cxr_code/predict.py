@@ -99,8 +99,8 @@ def predict_for_split(args_dicts, model_paths, split):
 def predict(model_paths, split="valid", save=True):
 
     def get_model_params(model_path):
-        params = json.load(open(
-            os.path.dirname(model_path) + '/params.txt', 'r'))
+        with open(os.path.dirname(model_path) + '/params.txt', 'r') as f:
+            params = json.load(f)
         return params
 
     model_args_dicts = [get_model_params(model_path) for model_path in model_paths]

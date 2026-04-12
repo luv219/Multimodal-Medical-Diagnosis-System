@@ -4,8 +4,6 @@ import torch
 import torch.nn as nn
 import numpy as np
 
-from torch.autograd import Variable
-
 # from model.densenet import densenet121
 from torchvision.models import densenet121
 
@@ -255,7 +253,7 @@ class XAMIMultiModalSum(nn.Module):
         return sum([param.nelement() for param in self.parameters()])
 
 
-class XAMIMultiCocatModal(nn.Module):
+class XAMIMultiConcatModal(nn.Module):
     def __init__(
         self,
         reflacx_dataset,
@@ -269,7 +267,7 @@ class XAMIMultiCocatModal(nn.Module):
         pretrained=True,
         detach_image=False,
     ) -> None:
-        super(XAMIMultiCocatModal, self).__init__()
+        super(XAMIMultiConcatModal, self).__init__()
 
         self.device = device
 
@@ -348,3 +346,7 @@ class XAMIMultiCocatModal(nn.Module):
         return how many parameters in the model
         """
         return sum([param.nelement() for param in self.parameters()])
+
+
+# Backward-compatible alias (original name had a typo; preserved for existing notebooks)
+XAMIMultiCocatModal = XAMIMultiConcatModal

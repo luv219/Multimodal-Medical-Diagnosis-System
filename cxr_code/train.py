@@ -39,8 +39,8 @@ def transform_data(data, use_gpu, train=False):
     if use_gpu is True:
         inputs = inputs.cuda()
         labels = labels.cuda()
-    inputs = Variable(inputs, requires_grad=False, volatile=not train)
-    labels = Variable(labels, requires_grad=False, volatile=not train)
+    inputs = Variable(inputs, requires_grad=False)
+    labels = Variable(labels, requires_grad=False)
     return inputs, labels
 
 
@@ -55,9 +55,9 @@ def train_epoch(epoch, args, model, loader, criterion, optimizer):
         loss.backward()
         optimizer.step()
         print("Epoch: {:d} Batch: {:d} ({:d}) Train Loss: {:.6f}".format(
-            epoch, batch_idx, args.batch_size, loss.data[0]))
+            epoch, batch_idx, args.batch_size, loss.item()))
         sys.stdout.flush()
-        batch_losses.append(loss.data[0])
+        batch_losses.append(loss.item())
     train_loss = np.mean(batch_losses)
     print("Training Loss: {:.6f}".format(train_loss))
     return train_loss
@@ -77,7 +77,7 @@ def test_epoch(model, loader, criterion, epoch=1):
         inputs, labels = transform_data(data, True, train=False)
         outputs = model(inputs)
         loss = criterion(outputs, labels, epoch=epoch)
-        test_losses.append(loss.data[0])
+        test_losses.append(loss.item())
         out = torch.sigmoid(outputs).data.cpu().numpy()
         outs.extend(out)
     avg_loss = np.mean(test_losses)

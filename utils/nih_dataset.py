@@ -36,8 +36,7 @@ class NIHChestDataset(Dataset):
         try:
             image = Image.open(image_path).convert('RGB')
         except Exception as e:
-            # print(f"Error loading image {image_path}: {e}")
-            # Return a valid zero tensor for a black image with no shape issues
+            print(f"Warning: Error loading image {image_path}: {e}. Using blank image.")
             image = Image.new('RGB', (256, 256))
 
         if self.transform:

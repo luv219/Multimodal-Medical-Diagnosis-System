@@ -11,9 +11,9 @@ from PIL import Image
 
 class MIMICDataloader():
     def __init__(self, XAMI_MIMIC_PATH) -> None:
-        self.XAMI_MIMIC_PAHT = XAMI_MIMIC_PATH
+        self.XAMI_MIMIC_PATH = XAMI_MIMIC_PATH
         self.reflacx_metadata = pd.read_csv(TabularDataPaths.SpreadSheet.get_sreadsheet(
-            self.XAMI_MIMIC_PAHT, TabularDataPaths.SpreadSheet.REFLACX.metadata))
+            self.XAMI_MIMIC_PATH, TabularDataPaths.SpreadSheet.REFLACX.metadata))
 
     def get_tabular_data_path_from_field(self, patient_id, paths, reflacx_id=None):
 
@@ -21,10 +21,10 @@ class MIMICDataloader():
         for path in paths:
             if "REFLACXStudy" in str(path):
                 table_path = TabularDataPaths.PatientDataPaths.REFLACX.REFLACXStudy.get_reflacx_path(
-                    self.XAMI_MIMIC_PAHT, patient_id, reflacx_id, path.value)
+                    self.XAMI_MIMIC_PATH, patient_id, reflacx_id, path.value)
             else:
                 table_path = TabularDataPaths.PatientDataPaths.get_patient_path(
-                    self.XAMI_MIMIC_PAHT, patient_id, path)
+                    self.XAMI_MIMIC_PATH, patient_id, path)
 
             all_dfs[path] = pd.read_csv(table_path)
 
@@ -64,19 +64,19 @@ class MIMICDataloader():
         return ids
 
     def get_image_path(self, patient_id, study_id, dicom_id):
-        return os.path.join(self.XAMI_MIMIC_PAHT, f"patient_{patient_id}", "CXR-JPG", f"s{study_id}", f"{dicom_id}.jpg")
+        return os.path.join(self.XAMI_MIMIC_PATH, f"patient_{patient_id}", "CXR-JPG", f"s{study_id}", f"{dicom_id}.jpg")
 
     def get_reflacx_report_text_path(self, patient_id, reflacx_id):
-        return os.path.join(self.XAMI_MIMIC_PAHT, f"patient_{patient_id}", "REFLACX", reflacx_id, "transcription.txt")
+        return os.path.join(self.XAMI_MIMIC_PATH, f"patient_{patient_id}", "REFLACX", reflacx_id, "transcription.txt")
 
     def get_reflacx_eye_tracking_path(self,  patient_id, reflacx_id):
-        return os.path.join(self.XAMI_MIMIC_PAHT, f"patient_{patient_id}", "REFLACX", reflacx_id, "fixations.csv")
+        return os.path.join(self.XAMI_MIMIC_PATH, f"patient_{patient_id}", "REFLACX", reflacx_id, "fixations.csv")
 
     def get_relfacx_eye_gaze_path(self, reflacx_id):
-        return os.path.join(self.XAMI_MIMIC_PAHT, "spreadsheets", "REFLACX", "gaze_data", reflacx_id, "gaze.csv")
+        return os.path.join(self.XAMI_MIMIC_PATH, "spreadsheets", "REFLACX", "gaze_data", reflacx_id, "gaze.csv")
 
     def get_cxr_report_text_path(self, patient_id, study_id):
-        return os.path.join(self.XAMI_MIMIC_PAHT, f"patient_{patient_id}", "CXR-DICOM", f"s{study_id}")
+        return os.path.join(self.XAMI_MIMIC_PATH, f"patient_{patient_id}", "CXR-DICOM", f"s{study_id}")
 
     def get_data(self, dicom_ids, tabular_data_paths, load_image=True, load_report_text="reflacx"):
 

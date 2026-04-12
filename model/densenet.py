@@ -1,3 +1,6 @@
+# NOTE: This file is unused dead code.
+# All active training pipelines (scripts/train_nih.py, run_train.py) load DenseNet
+# directly from torchvision.models.densenet121. This file is kept for reference only.
 import torch
 import torch.nn as nn
 import torch.nn.functional as F

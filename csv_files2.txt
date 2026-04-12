@@ -1,6 +1,0 @@
-E:\Github Local\original\Multimodal-Medical-Diagnosis-System\Experiment_Image_Only.csv
-E:\Github Local\original\Multimodal-Medical-Diagnosis-System\reflacx_with_clinical.csv
-E:\Github Local\original\Multimodal-Medical-Diagnosis-System\cxr_code\data\train_relabeled.csv
-E:\Github Local\original\Multimodal-Medical-Diagnosis-System\cxr_code\data\train.csv
-E:\Github Local\original\Multimodal-Medical-Diagnosis-System\cxr_code\data\valid_relabeled.csv
-E:\Github Local\original\Multimodal-Medical-Diagnosis-System\cxr_code\data\valid.csv

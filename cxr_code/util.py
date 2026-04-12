@@ -54,7 +54,7 @@ class Dataset(data.Dataset):
         self.img_paths = df["Path"].tolist()
         self.pathologies = [col for col in df.columns.values if col != "Path"]
 
-        self.labels = df[self.pathologies].as_matrix().astype(int)
+        self.labels = df[self.pathologies].values.astype(int)
 
         self.n_classes = self.labels.shape[1]
 
@@ -129,6 +129,8 @@ def evaluate(gts, probabilities, pathologies, use_only_index = None):
     assert(np.all(probabilities >= 0) == True)
     assert(np.all(probabilities <= 1) == True)
 
+    preds = probabilities >= 0.5
+
     def compute_metrics_for_class(i):
          p, r, t = sklearn.metrics.precision_recall_curve(gts[:, i], probabilities[:, i])
          PR_AUC = sklearn.metrics.auc(r, p)
@@ -143,7 +145,6 @@ def evaluate(gts, probabilities, pathologies, use_only_index = None):
     F1s = []
     accs = []
     counts = []
-    preds = probabilities >= 0.5
 
     classes = [use_only_index] if use_only_index is not None else range(len(gts[0]))
 

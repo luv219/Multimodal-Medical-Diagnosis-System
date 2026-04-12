@@ -11,7 +11,7 @@ import torch
 import torch.optim as optim
 from torch.optim import lr_scheduler
 from data.dataset import REFLACXWithClinicalDataset
-from model.xami import XAMIMultiCocatModal
+from model.xami import XAMIMultiConcatModal
 from utils.train import split_dataset, train_with_chexnext
 
 
@@ -28,7 +28,7 @@ def main():
 
     # Create model: multimodal (CXR image + clinical data)
     print("Creating model...")
-    model = XAMIMultiCocatModal(
+    model = XAMIMultiConcatModal(
         reflacx_dataset,
         device,
         use_clinical=True,
@@ -46,7 +46,7 @@ def main():
     dataloaders = split_dataset(
         reflacx_dataset,
         batch_size=16,
-        traing_portion=0.8,
+        training_portion=0.8,
         test_portion=0.1,
         seed=123,
     )

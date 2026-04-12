@@ -1,0 +1,74 @@
+# =============================================================================
+# Multimodal Medical Diagnosis System — Central Configuration
+# =============================================================================
+# Edit this file to change hyperparameters without touching source code.
+# Used by scripts/train_nih.py (nih section) and run_train.py (reflacx section).
+# =============================================================================
+
+# ---------------------------------------------------------------------------
+# NIH ChestX-ray14 image-only training (scripts/train_nih.py)
+# ---------------------------------------------------------------------------
+nih:
+  # Paths (relative to project root)
+  data_dir: "./data/nih_chest_xray"
+  train_csv: "./cxr_code/data/train.csv"
+  valid_csv: "./cxr_code/data/valid.csv"
+
+  # Training
+  batch_size: 128
+  num_epochs: 5
+  lr: 0.0001
+  weight_decay: 0.00001
+  seed: 42
+
+  # Model
+  num_classes: 5
+  label_names:
+    - Atelectasis
+    - Cardiomegaly
+    - Consolidation
+    - Edema
+    - Effusion
+
+  # Loss — positive class weight for BCEWithLogitsLoss (handles class imbalance)
+  pos_weight: 5.0
+
+  # LR scheduler (StepLR)
+  scheduler_step_size: 2
+  scheduler_gamma: 0.1
+
+  # DataLoader
+  num_workers: 4
+
+# ---------------------------------------------------------------------------
+# REFLACX multimodal training (run_train.py)
+# ---------------------------------------------------------------------------
+reflacx:
+  # Training
+  batch_size: 16
+  num_epochs: 10
+  lr: 0.0001
+  weight_decay: 0.00001
+  seed: 123
+
+  # Dataset split
+  training_portion: 0.8
+  test_portion: 0.1
+
+  # Model architecture
+  image_size: 256
+  model_dim: 32
+  embedding_dim: 64
+  dropout: 0.2
+  pretrained: true
+  detach_image: false
+  use_clinical: true
+  use_image: true
+
+  # Early stopping
+  early_stop_count: 5
+
+  # LR scheduler (ReduceLROnPlateau)
+  scheduler_patience: 2
+  scheduler_threshold: 0.001
+  scheduler_factor: 0.5

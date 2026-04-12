@@ -24,8 +24,8 @@ from utils.print import print_block
 from utils.transform import transform_data
 
 
-def split_dataset(dataset,  batch_size, traing_portion=.8, test_portion=.1, seed=123):
-    train_dataset_len = int(len(dataset) * traing_portion)
+def split_dataset(dataset, batch_size, training_portion=.8, test_portion=.1, seed=123):
+    train_dataset_len = int(len(dataset) * training_portion)
     test_dataset_len = int(len(dataset) * test_portion)
     val_dataset_len = len(dataset) - (train_dataset_len + test_dataset_len)
 
@@ -50,14 +50,14 @@ def split_dataset(dataset,  batch_size, traing_portion=.8, test_portion=.1, seed
     val_dataloader = DataLoader(
         val_dataset,
         batch_size=batch_size,
-        shuffle=True,
+        shuffle=False,
         collate_fn=dataset.test_collate_fn
     )
 
     test_dataloader = DataLoader(
         test_dataset,
         batch_size=batch_size,
-        shuffle=True,
+        shuffle=False,
         collate_fn=dataset.test_collate_fn
     )
 

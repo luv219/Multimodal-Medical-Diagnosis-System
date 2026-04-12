@@ -1,4 +1,5 @@
 import os
+import random
 import torch
 import torch.nn as nn
 from torch.optim import Adam
@@ -25,6 +26,14 @@ NUM_CLASSES = 5
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 
 LABEL_NAMES = ["Atelectasis", "Cardiomegaly", "Consolidation", "Edema", "Effusion"]
+
+# Reproducibility
+SEED = 42
+random.seed(SEED)
+np.random.seed(SEED)
+torch.manual_seed(SEED)
+if torch.cuda.is_available():
+    torch.cuda.manual_seed_all(SEED)
 
 def train():
     print(f"Using device: {DEVICE}")

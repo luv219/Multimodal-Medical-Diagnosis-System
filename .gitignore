@@ -21,3 +21,21 @@ experiment_gramcam_with_diseases.zip
 /results/
 __pycache__/
 *.pyc
+
+# Binaries
+*.exe
+
+# Generated/temp files
+tree.txt
+csv_files*.txt
+
+# OS artifacts
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Editor
+.vscode/
+.idea/
+*.swp
+*.swo
