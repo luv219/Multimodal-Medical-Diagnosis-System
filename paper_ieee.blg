@@ -1,0 +1,60 @@
+This is BibTeX, Version 0.99e
+Capacity: max_strings=200000, hash_size=200000, hash_prime=170003
+The top-level auxiliary file: paper_ieee.aux
+Reallocating 'name_of_file' (item size: 1) to 9 items.
+The style file: IEEEtran.bst
+Reallocating 'name_of_file' (item size: 1) to 16 items.
+Reallocating 'singl_function' (item size: 4) to 100 items.
+Reallocating 'singl_function' (item size: 4) to 100 items.
+Reallocating 'singl_function' (item size: 4) to 100 items.
+Reallocating 'wiz_functions' (item size: 4) to 6000 items.
+Reallocating 'singl_function' (item size: 4) to 100 items.
+Database file #1: paper_ieee_refs.bib
+-- IEEEtran.bst version 1.14 (2015/08/26) by Michael Shell.
+-- http://www.michaelshell.org/tex/ieeetran/bibtex/
+-- See the "IEEEtran_bst_HOWTO.pdf" manual for usage information.
+Warning--empty booktitle in rajpurkar2018chexnext
+
+Done.
+You've used 18 entries,
+            4087 wiz_defined-function locations,
+            918 strings with 12980 characters,
+and the built_in function-call counts, 17553 in all, are:
+= -- 1266
+> -- 744
+< -- 114
++ -- 386
+- -- 161
+* -- 882
+:= -- 2382
+add.period$ -- 37
+call.type$ -- 18
+change.case$ -- 18
+chr.to.int$ -- 246
+cite$ -- 19
+duplicate$ -- 1239
+empty$ -- 1312
+format.name$ -- 179
+if$ -- 4120
+int.to.chr$ -- 0
+int.to.str$ -- 18
+missing$ -- 276
+newline$ -- 77
+num.names$ -- 18
+pop$ -- 708
+preamble$ -- 1
+purify$ -- 0
+quote$ -- 2
+skip$ -- 1316
+stack$ -- 0
+substring$ -- 636
+swap$ -- 1045
+text.length$ -- 32
+text.prefix$ -- 0
+top$ -- 5
+type$ -- 18
+warning$ -- 1
+while$ -- 60
+width$ -- 20
+write$ -- 197
+(There was 1 warning)

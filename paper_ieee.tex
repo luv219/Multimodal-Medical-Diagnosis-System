@@ -140,7 +140,7 @@ The integrated dataset comprises 675 annotated samples. Each sample consists of 
 Our multimodal framework consists of three components: (1) an image feature extraction branch, (2) a clinical data encoding branch, and (3) a fusion and decision module. Fig.~\ref{fig:architecture} illustrates the overall architecture.
 
 \begin{figure}[htbp]
-\centerline{\includegraphics[width=\columnwidth]{Images/MultiModalArchitecture-2.png}}
+\centerline{\includegraphics[width=\columnwidth]{MultiModalArchitecture-2.png}}
 \caption{Multimodal architecture. The image branch (DenseNet-121) and clinical branch (MLP with embedding layer) produce fixed-dimensional feature vectors that are fused via concatenation before the decision layer.}
 \label{fig:architecture}
 \end{figure}
@@ -268,7 +268,7 @@ Both concatenation and summation fusion enable the multimodal model to outperfor
 \begin{figure}[htbp]
 % TODO: Replace with exported Grad-CAM comparison figure from GradCAM++_apply.ipynb
 % Expected: side-by-side comparison of sum vs concat fusion saliency maps
-\centerline{\includegraphics[width=\columnwidth]{Images/test.png}}
+\centerline{\includegraphics[width=\columnwidth]{test.png}}
 \caption{Grad-CAM++ visualization comparison. Concatenation fusion produces clinically plausible saliency maps highlighting relevant anatomical regions, while summation fusion introduces corner artifacts due to clinical feature gradients leaking into spatial dimensions.}
 \label{fig:gradcam}
 \end{figure}

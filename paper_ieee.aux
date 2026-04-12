@@ -1,0 +1,109 @@
+\relax 
+\citation{wang2017chestxray14}
+\citation{rajpurkar2017chexnet,irvin2019chexpert}
+\citation{acosta2022multimodal}
+\citation{lipkova2022multimodal,kline2022multimodal}
+\citation{holzinger2019xai}
+\citation{selvaraju2017gradcam}
+\citation{chattopadhay2018gradcampp}
+\citation{wang2017chestxray14}
+\citation{irvin2019chexpert}
+\citation{johnson2019mimiccxr}
+\citation{rajpurkar2017chexnet}
+\citation{huang2017densenet}
+\citation{rajpurkar2018chexnext}
+\@writefile{toc}{\contentsline {section}{\numberline {I}Introduction}{1}{}\protected@file@percent }
+\newlabel{sec:intro}{{I}{1}{}{section.1}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {II}Related Work}{1}{}\protected@file@percent }
+\newlabel{sec:related}{{II}{1}{}{section.2}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {II-A}}Chest X-Ray Classification with Deep Learning}{1}{}\protected@file@percent }
+\citation{acosta2022multimodal,lipkova2022multimodal}
+\citation{kline2022multimodal}
+\citation{selvaraju2017gradcam}
+\citation{chattopadhay2018gradcampp}
+\citation{yuan2021deepauc}
+\citation{johnson2023mimiciv}
+\citation{johnson2019mimiccxr}
+\citation{johnson2021mimiccxrjpg}
+\citation{bigolin2022reflacx}
+\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {II-B}}Multimodal Medical AI}{2}{}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {II-C}}Explainable AI for Radiology}{2}{}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {II-D}}AUC-Oriented Optimization}{2}{}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {III}Materials and Data Sources}{2}{}\protected@file@percent }
+\newlabel{sec:data}{{III}{2}{}{section.3}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {III-A}}Data Integration Pipeline}{2}{}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {I}{\ignorespaces Data Sources and Their Roles in the Multimodal Pipeline}}{2}{}\protected@file@percent }
+\newlabel{tab:datasources}{{I}{2}{}{table.1}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {III-B}}Label Definition}{2}{}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {III-C}}Final Dataset Characteristics}{2}{}\protected@file@percent }
+\citation{huang2017densenet}
+\citation{deng2009imagenet}
+\citation{kingma2015adam}
+\citation{yuan2021deepauc}
+\citation{chattopadhay2018gradcampp}
+\@writefile{toc}{\contentsline {section}{\numberline {IV}Methodology}{3}{}\protected@file@percent }
+\newlabel{sec:method}{{IV}{3}{}{section.4}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {IV-A}}Overall Architecture}{3}{}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {1}{\ignorespaces Multimodal architecture. The image branch (DenseNet-121) and clinical branch (MLP with embedding layer) produce fixed-dimensional feature vectors that are fused via concatenation before the decision layer.}}{3}{}\protected@file@percent }
+\newlabel{fig:architecture}{{1}{3}{}{figure.1}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {IV-B}}Image Branch}{3}{}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {IV-C}}Clinical Branch}{3}{}\protected@file@percent }
+\newlabel{eq:clinical1}{{1}{3}{}{equation.1}{}}
+\newlabel{eq:clinical2}{{2}{3}{}{equation.2}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {IV-D}}Fusion Strategies}{3}{}\protected@file@percent }
+\newlabel{eq:sum}{{3}{3}{}{equation.3}{}}
+\newlabel{eq:cat}{{4}{3}{}{equation.4}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {IV-E}}Loss Functions and Training}{3}{}\protected@file@percent }
+\citation{rajpurkar2018chexnext}
+\citation{irvin2019chexpert}
+\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {IV-F}}Explainability with Grad-CAM++}{4}{}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {V}Experimental Setup}{4}{}\protected@file@percent }
+\newlabel{sec:experiments}{{V}{4}{}{section.5}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {V-A}}Model Variants}{4}{}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {V-B}}Training Configuration}{4}{}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {V-C}}Evaluation Metrics}{4}{}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {VI}Results}{4}{}\protected@file@percent }
+\newlabel{sec:results}{{VI}{4}{}{section.6}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {VI-A}}Model Variant Comparison}{4}{}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {II}{\ignorespaces Performance Comparison of Model Variants}}{4}{}\protected@file@percent }
+\newlabel{tab:results}{{II}{4}{}{table.2}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {VI-B}}Overfitting Analysis}{4}{}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {VI-C}}Learning Rate Sensitivity}{4}{}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {VI-D}}DeepAUC Training}{4}{}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {VI-E}}Fusion Strategy Comparison}{4}{}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {2}{\ignorespaces Grad-CAM++ visualization comparison. Concatenation fusion produces clinically plausible saliency maps highlighting relevant anatomical regions, while summation fusion introduces corner artifacts due to clinical feature gradients leaking into spatial dimensions.}}{5}{}\protected@file@percent }
+\newlabel{fig:gradcam}{{2}{5}{}{figure.2}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {VI-F}}Per-Disease Analysis}{5}{}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {III}{\ignorespaces Test Set Confusion Matrix for Multimodal Concatenation Model (300 Epochs)}}{5}{}\protected@file@percent }
+\newlabel{tab:perdisease}{{III}{5}{}{table.3}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {VII}Discussion}{5}{}\protected@file@percent }
+\newlabel{sec:discussion}{{VII}{5}{}{section.7}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {VII-A}}Value of Clinical Context}{5}{}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {VII-B}}Fusion Strategy Implications}{5}{}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {VII-C}}Challenges of Small-Sample Multimodal Learning}{5}{}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {VII-D}}Explainability in Multimodal Architectures}{5}{}\protected@file@percent }
+\bibstyle{IEEEtran}
+\bibdata{paper_ieee_refs}
+\bibcite{wang2017chestxray14}{1}
+\bibcite{rajpurkar2017chexnet}{2}
+\bibcite{irvin2019chexpert}{3}
+\bibcite{acosta2022multimodal}{4}
+\bibcite{lipkova2022multimodal}{5}
+\bibcite{kline2022multimodal}{6}
+\bibcite{holzinger2019xai}{7}
+\bibcite{selvaraju2017gradcam}{8}
+\bibcite{chattopadhay2018gradcampp}{9}
+\bibcite{johnson2019mimiccxr}{10}
+\bibcite{huang2017densenet}{11}
+\bibcite{rajpurkar2018chexnext}{12}
+\bibcite{yuan2021deepauc}{13}
+\bibcite{johnson2023mimiciv}{14}
+\bibcite{johnson2021mimiccxrjpg}{15}
+\bibcite{bigolin2022reflacx}{16}
+\bibcite{deng2009imagenet}{17}
+\bibcite{kingma2015adam}{18}
+\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {VII-E}}Limitations}{6}{}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {VIII}Conclusion}{6}{}\protected@file@percent }
+\newlabel{sec:conclusion}{{VIII}{6}{}{section.8}{}}
+\@writefile{toc}{\contentsline {section}{References}{6}{}\protected@file@percent }
+\gdef \@abspage@last{6}
