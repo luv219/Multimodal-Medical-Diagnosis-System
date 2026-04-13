@@ -9,16 +9,15 @@
 # NIH ChestX-ray14 image-only training (scripts/train_nih.py)
 # ---------------------------------------------------------------------------
 nih:
-  # Paths (relative to project root)
   data_dir: "./data/nih_chest_xray"
   train_csv: "./cxr_code/data/train.csv"
   valid_csv: "./cxr_code/data/valid.csv"
 
-  # Training — AGGRESSIVE FOR MAXIMUM ACCURACY
-  batch_size: 64              # Small batches = more gradient updates
-  num_epochs: 10             # Long training for full convergence
-  lr: 0.00005                 # Lower learning rate for stability
-  weight_decay: 0.0001        # Stronger L2 regularization
+  # Training
+  batch_size: 32            # 64 → OOM on 4 GB VRAM; 32 fits safely
+  num_epochs: 10            # More epochs to compensate for smaller batch
+  lr: 0.0001                # Scaled up slightly for batch 32 (linear scaling rule)
+  weight_decay: 0.0001
   seed: 123
 
   # Model
@@ -30,15 +29,17 @@ nih:
     - Edema
     - Effusion
 
-  # Loss — positive class weight for BCEWithLogitsLoss (handles class imbalance)
+  # Loss
   pos_weight: 5.0
 
-  # LR scheduler (StepLR)
-  scheduler_step_size: 15     # Reduce LR every 15 epochs (let model train longer)
-  scheduler_gamma: 0.7        # Gentle LR reduction (0.7x each step)
+  # LR scheduler
+  scheduler_step_size: 7    # Was 15 — never fired in 10 epochs! Now fires at ep 7 & 14
+  scheduler_gamma: 0.7
 
   # DataLoader
-  num_workers: 0              # CPU training (no multiprocessing)
+  num_workers: 4            # i5-14400F has 10 cores — 1 worker starves the GPU
+  pin_memory: true          # Faster CPU→GPU transfers
+  persistent_workers: true  # Avoid re-spawning workers each epoch            # CPU training (no multiprocessing)
 
 # ---------------------------------------------------------------------------
 # REFLACX multimodal training (run_train.py)
