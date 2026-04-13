@@ -14,12 +14,12 @@ nih:
   train_csv: "./cxr_code/data/train.csv"
   valid_csv: "./cxr_code/data/valid.csv"
 
-  # Training
-  batch_size: 128
-  num_epochs: 5
-  lr: 0.0001
-  weight_decay: 0.00001
-  seed: 42
+  # Training — AGGRESSIVE FOR MAXIMUM ACCURACY
+  batch_size: 64              # Small batches = more gradient updates
+  num_epochs: 10             # Long training for full convergence
+  lr: 0.00005                 # Lower learning rate for stability
+  weight_decay: 0.0001        # Stronger L2 regularization
+  seed: 123
 
   # Model
   num_classes: 5
@@ -34,11 +34,11 @@ nih:
   pos_weight: 5.0
 
   # LR scheduler (StepLR)
-  scheduler_step_size: 2
-  scheduler_gamma: 0.1
+  scheduler_step_size: 15     # Reduce LR every 15 epochs (let model train longer)
+  scheduler_gamma: 0.7        # Gentle LR reduction (0.7x each step)
 
   # DataLoader
-  num_workers: 4
+  num_workers: 0              # CPU training (no multiprocessing)
 
 # ---------------------------------------------------------------------------
 # REFLACX multimodal training (run_train.py)

@@ -1,0 +1,152 @@
+{
+  "patient_id": "P_E2E",
+  "records": [
+    {
+      "patient_id": "P_E2E",
+      "session_id": "15fa414c-05de-4ebf-83b1-957b900562a6",
+      "timestamp": "2026-04-13T05:24:20.926345+00:00",
+      "image_path": "test2.jpg",
+      "metadata": null,
+      "prob_dict": {
+        "Atelectasis": 0.64453125,
+        "Consolidation": 0.5625,
+        "Cardiomegaly": 0.458984375,
+        "Effusion": 0.423828125,
+        "Edema": 0.365234375
+      },
+      "impression_summary": "[Moderate] Lung Collapse / Respiratory Distress (weighted score: 60.0%)",
+      "peak_coordinates": {
+        "Atelectasis": [
+          0,
+          907
+        ],
+        "Consolidation": [
+          0,
+          1503
+        ],
+        "Cardiomegaly": [
+          188,
+          0
+        ],
+        "Effusion": [
+          0,
+          0
+        ],
+        "Edema": [
+          0,
+          0
+        ]
+      },
+      "findings_3d": {
+        "Atelectasis": [
+          -0.006670372429127269,
+          0.7,
+          0.0
+        ],
+        "Consolidation": [
+          -0.5367426347971096,
+          0.7,
+          0.1
+        ],
+        "Cardiomegaly": [
+          0.8,
+          0.0037037037037037646,
+          -0.1
+        ],
+        "Effusion": [
+          0.8,
+          0.7,
+          0.2
+        ],
+        "Edema": [
+          0.8,
+          0.7,
+          0.0
+        ]
+      },
+      "trend_data": null,
+      "report_path": null
+    },
+    {
+      "patient_id": "P_E2E",
+      "session_id": "9fda853e-fc15-4901-9674-98b7be3f78e7",
+      "timestamp": "2026-04-13T05:24:27.847123+00:00",
+      "image_path": "test2.jpg",
+      "metadata": {
+        "age": 65,
+        "gender": "M"
+      },
+      "prob_dict": {
+        "Atelectasis": 0.64453125,
+        "Consolidation": 0.5625,
+        "Cardiomegaly": 0.458984375,
+        "Effusion": 0.423828125,
+        "Edema": 0.365234375
+      },
+      "impression_summary": "[Moderate] Lung Collapse / Respiratory Distress (weighted score: 60.0%)",
+      "peak_coordinates": {
+        "Atelectasis": [
+          0,
+          907
+        ],
+        "Consolidation": [
+          0,
+          1503
+        ],
+        "Cardiomegaly": [
+          188,
+          0
+        ],
+        "Effusion": [
+          0,
+          0
+        ],
+        "Edema": [
+          0,
+          0
+        ]
+      },
+      "findings_3d": {
+        "Atelectasis": [
+          -0.006670372429127269,
+          0.7,
+          0.0
+        ],
+        "Consolidation": [
+          -0.5367426347971096,
+          0.7,
+          0.1
+        ],
+        "Cardiomegaly": [
+          0.8,
+          0.0037037037037037646,
+          -0.1
+        ],
+        "Effusion": [
+          0.8,
+          0.7,
+          0.2
+        ],
+        "Edema": [
+          0.8,
+          0.7,
+          0.0
+        ]
+      },
+      "trend_data": {
+        "rpi": -0.0,
+        "deltas": {
+          "Atelectasis": 0.0,
+          "Effusion": 0.0,
+          "Consolidation": 0.0,
+          "Edema": 0.0,
+          "Cardiomegaly": 0.0
+        },
+        "direction": "stable",
+        "previous_timestamp": "2026-04-13T05:24:20.926345+00:00",
+        "days_between": 0
+      },
+      "report_path": null
+    }
+  ]
+}

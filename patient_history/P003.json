@@ -1,0 +1,24 @@
+{
+  "patient_id": "P003",
+  "records": [
+    {
+      "patient_id": "P003",
+      "session_id": "96b3b002-f8db-45db-ba5c-6175f59b5960",
+      "timestamp": "2026-04-13T05:24:45.862464+00:00",
+      "image_path": "test2.jpg",
+      "metadata": null,
+      "prob_dict": {
+        "Atelectasis": 0.64453125,
+        "Consolidation": 0.5625,
+        "Cardiomegaly": 0.458984375,
+        "Effusion": 0.423828125,
+        "Edema": 0.365234375
+      },
+      "impression_summary": "[Moderate] Lung Collapse / Respiratory Distress (weighted score: 60.0%)",
+      "peak_coordinates": {},
+      "findings_3d": {},
+      "trend_data": null,
+      "report_path": null
+    }
+  ]
+}

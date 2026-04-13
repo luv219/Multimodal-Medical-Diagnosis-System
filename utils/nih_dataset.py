@@ -91,14 +91,15 @@ def get_nih_dataloaders(train_csv_path, valid_csv_path, data_dir, batch_size=16,
     train_dataset = NIHChestDataset(train_df, target_labels, transform=train_transform)
     val_dataset = NIHChestDataset(val_df, target_labels, transform=val_transform)
 
+    pin = torch.cuda.is_available()
     train_loader = DataLoader(
-        train_dataset, batch_size=batch_size, shuffle=True, 
-        num_workers=num_workers, pin_memory=True,
+        train_dataset, batch_size=batch_size, shuffle=True,
+        num_workers=num_workers, pin_memory=pin,
         persistent_workers=(num_workers > 0)
     )
     val_loader = DataLoader(
-        val_dataset, batch_size=batch_size, shuffle=False, 
-        num_workers=num_workers, pin_memory=True,
+        val_dataset, batch_size=batch_size, shuffle=False,
+        num_workers=num_workers, pin_memory=pin,
         persistent_workers=(num_workers > 0)
     )
 
