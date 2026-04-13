@@ -13,14 +13,12 @@ nih:
   train_csv: "./cxr_code/data/train.csv"
   valid_csv: "./cxr_code/data/valid.csv"
 
-  # Training
-  batch_size: 32            # 64 → OOM on 4 GB VRAM; 32 fits safely
-  num_epochs: 10            # More epochs to compensate for smaller batch
-  lr: 0.0001                # Scaled up slightly for batch 32 (linear scaling rule)
+  batch_size: 16           # Halved — leaves VRAM headroom for desktop use
+  num_epochs: 15           # Increased to compensate for smaller batch
+  lr: 0.00007              # Scaled with batch (linear scaling rule)
   weight_decay: 0.0001
   seed: 123
 
-  # Model
   num_classes: 5
   label_names:
     - Atelectasis
@@ -29,34 +27,26 @@ nih:
     - Edema
     - Effusion
 
-  # Loss
   pos_weight: 5.0
 
-  # LR scheduler
-  scheduler_step_size: 7    # Was 15 — never fired in 10 epochs! Now fires at ep 7 & 14
+  scheduler_step_size: 10  # Fires at ep 10 — one clean decay before end
   scheduler_gamma: 0.7
 
-  # DataLoader
-  num_workers: 4            # i5-14400F has 10 cores — 1 worker starves the GPU
-  pin_memory: true          # Faster CPU→GPU transfers
-  persistent_workers: true  # Avoid re-spawning workers each epoch            # CPU training (no multiprocessing)
+  num_workers: 2            # Frees ~2 cores for foreground work
+  prefetch_factor: 2        # Pre-loads 2 batches per worker — smooths GPU stalls
+  pin_memory: true
+  persistent_workers: true
 
-# ---------------------------------------------------------------------------
-# REFLACX multimodal training (run_train.py)
-# ---------------------------------------------------------------------------
 reflacx:
-  # Training
-  batch_size: 16
-  num_epochs: 10
-  lr: 0.0001
+  batch_size: 8            # 256px multimodal — 8 is safe on 4 GB VRAM
+  num_epochs: 15
+  lr: 0.00005              # Scaled with batch (0.0001 × 8/16)
   weight_decay: 0.00001
   seed: 123
 
-  # Dataset split
   training_portion: 0.8
   test_portion: 0.1
 
-  # Model architecture
   image_size: 256
   model_dim: 32
   embedding_dim: 64
@@ -66,10 +56,7 @@ reflacx:
   use_clinical: true
   use_image: true
 
-  # Early stopping
-  early_stop_count: 5
-
-  # LR scheduler (ReduceLROnPlateau)
-  scheduler_patience: 2
+  early_stop_count: 7      # Extra patience to match longer run
+  scheduler_patience: 3
   scheduler_threshold: 0.001
   scheduler_factor: 0.5
