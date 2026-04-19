@@ -50,6 +50,165 @@
         "days_between": 0
       },
       "report_path": null
+    },
+    {
+      "patient_id": "P001",
+      "session_id": "cd4668e4-0916-4d65-8792-441f3f50a7de",
+      "timestamp": "2026-04-19T12:37:03.228638+00:00",
+      "image_path": "test.png",
+      "metadata": null,
+      "prob_dict": {
+        "Cardiomegaly": 0.95703125,
+        "Effusion": 0.89453125,
+        "Edema": 0.8359375,
+        "Atelectasis": 0.63671875,
+        "Consolidation": 0.63671875
+      },
+      "impression_summary": "[High] Congestive Heart Failure (CHF) (weighted score: 89.6%)",
+      "peak_coordinates": {
+        "Cardiomegaly": [
+          299,
+          504
+        ],
+        "Effusion": [
+          304,
+          304
+        ],
+        "Edema": [
+          299,
+          504
+        ],
+        "Atelectasis": [
+          504,
+          299
+        ],
+        "Consolidation": [
+          0,
+          304
+        ]
+      },
+      "findings_3d": {
+        "Cardiomegaly": [
+          -0.5373134328358209,
+          0.005804311774460946,
+          -0.1
+        ],
+        "Effusion": [
+          -0.0066334991708126845,
+          -0.005804311774461057,
+          0.2
+        ],
+        "Edema": [
+          -0.5373134328358209,
+          0.005804311774460946,
+          0.0
+        ],
+        "Atelectasis": [
+          0.0066334991708125735,
+          -0.4701492537313432,
+          0.0
+        ],
+        "Consolidation": [
+          -0.0066334991708126845,
+          0.7,
+          0.1
+        ]
+      },
+      "trend_data": {
+        "rpi": -0.3825,
+        "deltas": {
+          "Consolidation": 0.0742,
+          "Cardiomegaly": 0.498,
+          "Edema": 0.4707,
+          "Effusion": 0.4707,
+          "Atelectasis": -0.0078
+        },
+        "direction": "worsening",
+        "previous_timestamp": "2026-04-13T05:22:02.645485+00:00",
+        "days_between": 6
+      },
+      "report_path": null
+    },
+    {
+      "patient_id": "P001",
+      "session_id": "3b27821c-7696-4b32-bf2f-173e61d134a4",
+      "timestamp": "2026-04-19T12:38:18.148267+00:00",
+      "image_path": "test.png",
+      "metadata": {
+        "age": 65,
+        "gender": "M"
+      },
+      "prob_dict": {
+        "Cardiomegaly": 0.95703125,
+        "Effusion": 0.89453125,
+        "Edema": 0.8359375,
+        "Atelectasis": 0.63671875,
+        "Consolidation": 0.63671875
+      },
+      "impression_summary": "[High] Congestive Heart Failure (CHF) (weighted score: 89.6%)",
+      "peak_coordinates": {
+        "Cardiomegaly": [
+          299,
+          504
+        ],
+        "Effusion": [
+          304,
+          304
+        ],
+        "Edema": [
+          299,
+          504
+        ],
+        "Atelectasis": [
+          504,
+          299
+        ],
+        "Consolidation": [
+          0,
+          304
+        ]
+      },
+      "findings_3d": {
+        "Cardiomegaly": [
+          -0.5373134328358209,
+          0.005804311774460946,
+          -0.1
+        ],
+        "Effusion": [
+          -0.0066334991708126845,
+          -0.005804311774461057,
+          0.2
+        ],
+        "Edema": [
+          -0.5373134328358209,
+          0.005804311774460946,
+          0.0
+        ],
+        "Atelectasis": [
+          0.0066334991708125735,
+          -0.4701492537313432,
+          0.0
+        ],
+        "Consolidation": [
+          -0.0066334991708126845,
+          0.7,
+          0.1
+        ]
+      },
+      "trend_data": {
+        "rpi": -0.0,
+        "deltas": {
+          "Effusion": 0.0,
+          "Cardiomegaly": 0.0,
+          "Consolidation": 0.0,
+          "Atelectasis": 0.0,
+          "Edema": 0.0
+        },
+        "direction": "stable",
+        "previous_timestamp": "2026-04-19T12:37:03.228638+00:00",
+        "days_between": 0
+      },
+      "report_path": null
     }
   ]
 }
