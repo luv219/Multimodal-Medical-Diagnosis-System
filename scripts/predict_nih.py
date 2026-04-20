@@ -30,7 +30,7 @@ from torchvision import transforms
 # Add project root to path for imports
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from model.image_only_model import ImageOnlyModel
+from model.image_only_model import load_nih_image_checkpoint
 from utils.clinical_impression import generate_impression
 from utils.patient_session import PatientSession
 
@@ -65,7 +65,7 @@ def predict(
     image_path : str
         Path to the chest X-ray image.
     model_path : str
-        Path to the saved ``ImageOnlyModel`` weights.
+        Path to saved NIH image-only weights (current or legacy DenseNet format).
     patient_id : str
         Patient identifier for longitudinal tracking.
     metadata_json : str, optional
@@ -95,8 +95,12 @@ def predict(
     # 1. Load model
     # ------------------------------------------------------------------
     print(f"Loading model on {DEVICE}...")
-    model = ImageOnlyModel(num_classes=NUM_CLASSES, use_pretrained=False).to(DEVICE)
-    model.load_state_dict(torch.load(model_path, map_location=DEVICE, weights_only=True))
+    model = load_nih_image_checkpoint(
+        model_path,
+        num_classes=NUM_CLASSES,
+        map_location=DEVICE,
+        use_pretrained=False,
+    ).to(DEVICE)
     model.eval()
 
     # ------------------------------------------------------------------
