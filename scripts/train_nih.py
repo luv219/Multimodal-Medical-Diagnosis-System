@@ -11,7 +11,11 @@ import sys
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.append(PROJECT_ROOT)
 
-from utils.nih_dataset import get_nih_dataloaders, compute_pos_weights_from_csv
+from utils.nih_dataset import (
+    WeightedFocalLoss,
+    compute_pos_weights_from_csv,
+    get_nih_dataloaders,
+)
 from model.image_only_model import ImageOnlyModel
 from sklearn.metrics import roc_auc_score
 import numpy as np
@@ -126,7 +130,13 @@ def train():
 
     model = ImageOnlyModel(num_classes=NUM_CLASSES).to(DEVICE)
 
-    criterion = nn.BCEWithLogitsLoss(pos_weight=pos_weights)
+    # WeightedFocalLoss (Task 4a): focuses training on hard examples and
+    # reduces loss from easy negatives — addresses Cardiomegaly shortcut learning.
+    # Normalise pos_weights to [0, 1] range to use as alpha class-balance factors.
+    alpha_weights = pos_weights / (pos_weights.max() + 1e-8)
+    criterion = WeightedFocalLoss(class_weights=alpha_weights.to(DEVICE), gamma=2.0)
+    # Keep BCEWithLogitsLoss as validation criterion for interpretable val loss values
+    val_criterion = nn.BCEWithLogitsLoss(pos_weight=pos_weights)
 
     optimizer = Adam(model.parameters(), lr=LR, weight_decay=WEIGHT_DECAY)
     scheduler = StepLR(optimizer, step_size=SCHEDULER_STEP_SIZE, gamma=SCHEDULER_GAMMA)
@@ -177,10 +187,10 @@ def train():
                 if scaler is not None:
                     with torch.amp.autocast("cuda"):
                         outputs = model(images)
-                        val_loss += criterion(outputs, labels).item()
+                        val_loss += val_criterion(outputs, labels).item()
                 else:
                     outputs = model(images)
-                    val_loss += criterion(outputs, labels).item()
+                    val_loss += val_criterion(outputs, labels).item()
                 all_preds.append(torch.sigmoid(outputs).cpu().numpy())
                 all_labels.append(labels.cpu().numpy())
 

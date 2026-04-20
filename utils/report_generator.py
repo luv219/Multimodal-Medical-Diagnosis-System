@@ -9,14 +9,16 @@ longitudinal trend charts when available.
 Sections
 --------
 1. Header & institution banner
-2. Patient information
-3. Clinical metadata (age, gender, symptoms)
-4. Findings table with severity colour-coding
-5. Clinical impression (from rule-based engine)
-6. Grad-CAM visualisation (embedded images)
-7. 3D anatomical map (embedded screenshot)
-8. Longitudinal trend chart (if prior sessions exist)
-9. Disclaimer
+2. Medical device warning banner (Task 7a — when devices detected)
+3. Patient information
+4. Clinical metadata (age, gender, symptoms)
+5. Findings table with severity + localization quality columns (Task 7b)
+6. Clinical impression (from rule-based engine)
+7. Confidence calibration guide (Task 7c)
+8. Grad-CAM visualisation (embedded images with localization quality)
+9. 3D anatomical map (embedded screenshot)
+10. Longitudinal trend chart (if prior sessions exist)
+11. Disclaimer
 """
 
 from __future__ import annotations
@@ -87,23 +89,72 @@ def _severity_colour(prob: float) -> colors.Color:
     return colors.HexColor("#27ae60")
 
 
-def _build_findings_table(prob_dict: dict[str, float]) -> Table:
-    """Build a formatted table of diagnostic findings."""
-    header = ["Pathology", "Confidence", "Severity"]
-    data = [header]
+def _localization_colour(score: float) -> colors.Color:
+    """Green = well-localised, yellow = uncertain, red = mislocalized."""
+    if score >= 0.6:
+        return colors.HexColor("#27ae60")
+    if score >= 0.4:
+        return colors.HexColor("#f39c12")
+    return colors.HexColor("#e74c3c")
 
+
+def _localization_label(score: float) -> str:
+    if score >= 0.6:
+        return "Good"
+    if score >= 0.4:
+        return "Uncertain"
+    return "Mislocalized"
+
+
+def _build_device_warning_banner(styles) -> list:
+    """Build a prominent warning block for images with detected medical devices (Task 7a)."""
+    warning_style = ParagraphStyle(
+        "DeviceWarning",
+        parent=styles["BodyText"],
+        fontSize=10,
+        textColor=colors.HexColor("#7d3c00"),
+        backColor=colors.HexColor("#fef9e7"),
+        borderColor=colors.HexColor("#f39c12"),
+        borderWidth=1,
+        borderPadding=8,
+        spaceBefore=4,
+        spaceAfter=4,
+    )
+    text = (
+        "<b>WARNING — Medical devices detected.</b> "
+        "Chest drains, catheters, pacemaker leads or ECG electrodes were detected "
+        "in this image. Effusion and Atelectasis predictions may be affected by "
+        "device artifacts. Confidence scores have been adjusted where Grad-CAM "
+        "activation overlaps device regions. "
+        "<b>Manual review by a qualified radiologist is strongly recommended.</b>"
+    )
+    return [Paragraph(text, warning_style), Spacer(1, 4)]
+
+
+def _build_findings_table(
+    prob_dict: dict[str, float],
+    localization_scores: Optional[dict[str, float]] = None,
+) -> Table:
+    """Build a formatted findings table with an optional Localisation column (Task 7b)."""
+    show_loc = bool(localization_scores)
+    header = ["Pathology", "Confidence", "Severity"]
+    col_widths = [6 * cm, 3 * cm, 3 * cm]
+    if show_loc:
+        header.append("Localisation")
+        col_widths.append(3 * cm)
+
+    data = [header]
     for label in sorted(prob_dict, key=prob_dict.get, reverse=True):
         prob = prob_dict[label]
         pct = f"{prob * 100:.1f}%"
-        if prob >= 0.6:
-            severity = "HIGH"
-        elif prob >= 0.3:
-            severity = "Moderate"
-        else:
-            severity = "Low"
-        data.append([label, pct, severity])
+        severity = "HIGH" if prob >= 0.6 else ("Moderate" if prob >= 0.3 else "Low")
+        row = [label, pct, severity]
+        if show_loc:
+            score = localization_scores.get(label, 1.0)
+            row.append(_localization_label(score))
+        data.append(row)
 
-    table = Table(data, colWidths=[6 * cm, 3 * cm, 3 * cm])
+    table = Table(data, colWidths=col_widths)
     style = TableStyle([
         ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#1a5276")),
         ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
@@ -114,14 +165,48 @@ def _build_findings_table(prob_dict: dict[str, float]) -> Table:
         ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.whitesmoke, colors.white]),
     ])
 
-    # Colour-code severity cells
     for i in range(1, len(data)):
-        prob = prob_dict.get(data[i][0], 0)
+        label = data[i][0]
+        prob = prob_dict.get(label, 0)
         style.add("TEXTCOLOR", (2, i), (2, i), _severity_colour(prob))
         style.add("FONTNAME", (2, i), (2, i), "Helvetica-Bold")
+        if show_loc:
+            score = localization_scores.get(label, 1.0)
+            style.add("TEXTCOLOR", (3, i), (3, i), _localization_colour(score))
+            style.add("FONTNAME", (3, i), (3, i), "Helvetica-Bold")
 
     table.setStyle(style)
     return table
+
+
+def _build_calibration_section(styles) -> list:
+    """Build the confidence calibration guide section (Task 7c)."""
+    elements = []
+    elements.append(Paragraph("Confidence Calibration Guide", styles["SectionHeading"]))
+    cal_data = [
+        ["Confidence Tier", "Range", "Clinical Interpretation"],
+        ["Low", "< 40%", "Elevated for monitoring only — low likelihood of pathology."],
+        ["Moderate", "40% – 70%", "Warrants clinical correlation — findings may be significant."],
+        ["High", "> 70%", "Strong positive signal — further workup is recommended."],
+    ]
+    cal_table = Table(cal_data, colWidths=[3.5 * cm, 3 * cm, 10 * cm])
+    cal_table.setStyle(TableStyle([
+        ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#1a5276")),
+        ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
+        ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+        ("FONTSIZE", (0, 0), (-1, -1), 9),
+        ("ALIGN", (0, 0), (-1, -1), "LEFT"),
+        ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+        ("GRID", (0, 0), (-1, -1), 0.5, colors.grey),
+        ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.whitesmoke, colors.white]),
+        ("TEXTCOLOR", (0, 1), (0, 1), colors.HexColor("#27ae60")),
+        ("TEXTCOLOR", (0, 2), (0, 2), colors.HexColor("#f39c12")),
+        ("TEXTCOLOR", (0, 3), (0, 3), colors.HexColor("#e74c3c")),
+        ("FONTNAME", (0, 1), (0, -1), "Helvetica-Bold"),
+    ]))
+    elements.append(cal_table)
+    elements.append(Spacer(1, 4))
+    return elements
 
 
 def _embed_image(
@@ -187,6 +272,11 @@ def generate_pdf_report(
     story.append(Paragraph("Automated Chest X-Ray Diagnostic Report", styles["Heading3"]))
     story.append(Spacer(1, 4 * mm))
 
+    # ---- Device warning banner (Task 7a) ----
+    if getattr(session, "device_detected", False):
+        story.extend(_build_device_warning_banner(styles))
+        story.append(Spacer(1, 2 * mm))
+
     # ---- Patient info ----
     story.append(Paragraph("Patient Information", styles["SectionHeading"]))
     info_data = [
@@ -213,10 +303,11 @@ def generate_pdf_report(
     story.append(info_table)
     story.append(Spacer(1, 4 * mm))
 
-    # ---- Findings table ----
+    # ---- Findings table (Task 7b: includes Localisation column) ----
     story.append(Paragraph("Diagnostic Findings", styles["SectionHeading"]))
     if session.prob_dict:
-        story.append(_build_findings_table(session.prob_dict))
+        loc_scores = getattr(session, "localization_scores", None) or None
+        story.append(_build_findings_table(session.prob_dict, loc_scores))
     else:
         story.append(Paragraph("No findings available.", styles["BodyText2"]))
     story.append(Spacer(1, 4 * mm))
@@ -230,6 +321,9 @@ def generate_pdf_report(
         story.append(Paragraph("No clinical impression generated.", styles["BodyText2"]))
     story.append(Spacer(1, 4 * mm))
 
+    # ---- Confidence calibration guide (Task 7c) ----
+    story.extend(_build_calibration_section(styles))
+
     # ---- Grad-CAM overlays ----
     if include_gradcam and session.overlay_paths:
         story.append(Paragraph("Explainability — Grad-CAM Heatmaps", styles["SectionHeading"]))
@@ -240,12 +334,23 @@ def generate_pdf_report(
             styles["BodyText2"],
         ))
         story.append(Spacer(1, 2 * mm))
+        loc_scores = getattr(session, "localization_scores", {}) or {}
         for label, path in session.overlay_paths.items():
             img = _embed_image(path, max_width=12 * cm, max_height=8 * cm)
             if img:
                 prob = session.prob_dict.get(label, 0)
+                loc_score = loc_scores.get(label)
+                if loc_score is not None:
+                    loc_text = (
+                        f"  |  Localisation: {_localization_label(loc_score)} "
+                        f"({loc_score*100:.0f}%)"
+                    )
+                    if loc_score < 0.4:
+                        loc_text += " ⚠ activation outside expected anatomy"
+                else:
+                    loc_text = ""
                 story.append(Paragraph(
-                    f"<b>{label}</b> — {prob*100:.1f}% confidence",
+                    f"<b>{label}</b> — {prob*100:.1f}% confidence{loc_text}",
                     styles["BodyText2"],
                 ))
                 story.append(img)

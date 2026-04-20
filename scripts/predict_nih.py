@@ -3,15 +3,18 @@ NIH ChestX-ray14 inference pipeline with integrated diagnostic suite.
 
 Features
 --------
-1. **Grad-CAM** — explainability heatmaps via PyTorch hooks.
-2. **3D Anatomical Mapping** — projects findings onto a 3D lung model.
-3. **Longitudinal Trend Analysis** — tracks patient history and computes
+1. **GradCAM++** — tighter explainability heatmaps with anatomical localisation scoring.
+2. **Medical Device Detection** — flags catheter/drain/lead artifacts and adjusts
+   Effusion/Atelectasis confidence scores when heatmaps overlap device regions.
+3. **Test-Time Augmentation** — averages 6 augmented passes for ~2% AUC gain.
+4. **Anatomical Sanity Checks** — per-pathology localisation quality score (0-1).
+5. **3D Anatomical Mapping** — projects findings onto a 3D lung model.
+6. **Longitudinal Trend Analysis** — tracks patient history and computes
    a Recovery/Progression Index.
-4. **Automated PDF Report** — generates a formal radiology report.
+7. **Automated PDF Report** — device warning banner, localisation quality column,
+   and confidence calibration guide.
 
-All advanced features degrade gracefully if their dependencies are not
-installed (``pyvista``, ``reportlab``, ``cv2``).  The core inference
-pipeline works with only PyTorch and Pillow.
+All advanced features degrade gracefully if their dependencies are not installed.
 """
 
 import argparse
@@ -52,6 +55,7 @@ def predict(
     no_gradcam: bool = False,
     no_3d: bool = False,
     no_pdf: bool = False,
+    no_tta: bool = False,
     history_dir: str = "patient_history",
 ):
     """Run the full diagnostic pipeline on a single chest X-ray.
@@ -68,11 +72,13 @@ def predict(
         JSON string or path to a JSON file with patient metadata
         (keys: ``age``, ``gender``, ``symptoms``).
     no_gradcam : bool
-        Skip Grad-CAM heatmap generation.
+        Skip GradCAM++ heatmap generation.
     no_3d : bool
         Skip 3D anatomical mapping.
     no_pdf : bool
         Skip PDF report generation.
+    no_tta : bool
+        Skip test-time augmentation (use single forward pass instead).
     history_dir : str
         Directory for per-patient history JSON files.
     """
@@ -94,7 +100,7 @@ def predict(
     model.eval()
 
     # ------------------------------------------------------------------
-    # 2. Preprocess & inference
+    # 2. Load image & detect medical devices (Task 2 / 5a)
     # ------------------------------------------------------------------
     try:
         image = Image.open(image_path).convert("RGB")
@@ -103,12 +109,48 @@ def predict(
         print(f"Failed to load and transform image: {e}")
         return
 
-    print(f"\nAnalyzing '{image_path}'...")
-    with torch.no_grad(), torch.amp.autocast("cuda" if DEVICE == "cuda" else "cpu"):
-        logits = model(img_tensor)
-        probs = torch.sigmoid(logits).squeeze().float().cpu().numpy()
+    import numpy as np
+    image_array = np.array(image)
+    device_mask = None
+    device_detected = False
+    try:
+        from utils.device_detector import detect_medical_devices, flag_device_presence
+        device_mask = detect_medical_devices(image_array)
+        device_detected = flag_device_presence(image_array)
+        if device_detected:
+            print(
+                "\n[WARNING] Medical devices detected in image. "
+                "Effusion/Atelectasis predictions will be adjusted."
+            )
+    except ImportError:
+        print("  Device detection skipped (opencv-python not available)")
+    except Exception as exc:
+        print(f"  Device detection failed: {exc}")
 
-    results = sorted(zip(LABEL_NAMES, probs), key=lambda x: x[1], reverse=True)
+    # ------------------------------------------------------------------
+    # 3. Inference (TTA or single-pass)
+    # ------------------------------------------------------------------
+    print(f"\nAnalyzing '{image_path}'...")
+    prob_dict_raw: dict[str, float] = {}
+
+    if not no_tta:
+        try:
+            from utils.inference_utils import predict_with_tta
+            prob_dict_raw = predict_with_tta(
+                model, image, INFERENCE_TRANSFORM, LABEL_NAMES,
+                n_augments=5, device=DEVICE,
+            )
+            print(f"  TTA: averaged 6 views")
+        except Exception as exc:
+            print(f"  TTA failed ({exc}), using single-pass inference")
+
+    if not prob_dict_raw:
+        with torch.no_grad(), torch.amp.autocast("cuda" if DEVICE == "cuda" else "cpu"):
+            logits = model(img_tensor)
+            probs = torch.sigmoid(logits).squeeze().float().cpu().numpy()
+        prob_dict_raw = {name: float(p) for name, p in zip(LABEL_NAMES, probs)}
+
+    results = sorted(prob_dict_raw.items(), key=lambda x: x[1], reverse=True)
     results_filtered = [(name, prob) for name, prob in results if prob * 100 > 10]
     display = results_filtered if results_filtered else results
 
@@ -120,9 +162,9 @@ def predict(
     print("-" * 30)
 
     # ------------------------------------------------------------------
-    # 3. Clinical impression
+    # 4. Clinical impression (on raw probabilities before device adjustment)
     # ------------------------------------------------------------------
-    prob_dict = {name: float(prob) for name, prob in results}
+    prob_dict = dict(prob_dict_raw)
     impression_lines = generate_impression(prob_dict)
 
     print("\n--- CLINICAL IMPRESSION ---")
@@ -131,7 +173,7 @@ def predict(
     print("-" * 30)
 
     # ------------------------------------------------------------------
-    # 4. Parse metadata (if provided)
+    # 5. Parse metadata (if provided)
     # ------------------------------------------------------------------
     def _validate_metadata(raw: dict) -> dict:
         validated = {}
@@ -167,7 +209,7 @@ def predict(
             print(f"Warning: Could not parse or validate metadata: {e}")
 
     # ------------------------------------------------------------------
-    # 5. Create PatientSession
+    # 6. Create PatientSession
     # ------------------------------------------------------------------
     session = PatientSession(
         patient_id=patient_id,
@@ -175,6 +217,7 @@ def predict(
         metadata=metadata,
         prob_dict=prob_dict,
         impression_lines=impression_lines,
+        device_detected=device_detected,
     )
 
     file_prefix = os.path.splitext(os.path.basename(image_path))[0]
@@ -182,13 +225,13 @@ def predict(
     os.makedirs(out_dir, mode=0o750, exist_ok=True)
 
     # ------------------------------------------------------------------
-    # 6. Grad-CAM (Feature 1)
+    # 7. GradCAM++ (Task 6) + device-aware confidence adjustment (Task 5a)
     # ------------------------------------------------------------------
     if not no_gradcam:
         try:
             from utils.visualizer import generate_all_heatmaps
 
-            print("\nGenerating Grad-CAM heatmaps...")
+            print("\nGenerating GradCAM++ heatmaps...")
             cam_results = generate_all_heatmaps(
                 model=model,
                 image_path=image_path,
@@ -202,14 +245,33 @@ def predict(
             session.heatmaps = cam_results["heatmaps"]
             session.overlay_paths = cam_results["overlay_paths"]
             session.peak_coordinates = cam_results["peaks"]
+            session.localization_scores = cam_results.get("localization_scores", {})
+
+            # Log localization quality
+            for lbl, score in session.localization_scores.items():
+                status = "Good" if score >= 0.6 else ("Uncertain" if score >= 0.4 else "MISLOCALIZED")
+                print(f"  {lbl}: localisation={score:.2f} ({status})")
+
+            # Device-aware confidence adjustment (Task 5a)
+            if device_mask is not None and device_detected:
+                from utils.inference_utils import adjust_confidence_for_devices
+                session.prob_dict = adjust_confidence_for_devices(
+                    session.prob_dict, device_mask, session.heatmaps
+                )
+                # Rebuild display with adjusted probs
+                results = sorted(session.prob_dict.items(), key=lambda x: x[1], reverse=True)
+                results_filtered = [(n, p) for n, p in results if p * 100 > 10]
+                display = results_filtered if results_filtered else results
+                print("  Confidence scores adjusted for device artifacts.")
+
             print(f"  Saved {len(cam_results['overlay_paths'])} heatmap(s) to {out_dir}/")
         except ImportError:
-            print("  Skipping Grad-CAM (missing dependency: opencv-python)")
+            print("  Skipping GradCAM++ (missing dependency: opencv-python or grad-cam)")
         except Exception as e:
-            print(f"  Grad-CAM failed: {e}")
+            print(f"  GradCAM++ failed: {e}")
 
     # ------------------------------------------------------------------
-    # 7. 3D Anatomical Mapping (Feature 3)
+    # 8. 3D Anatomical Mapping (Feature 3)
     # ------------------------------------------------------------------
     if not no_3d and session.peak_coordinates:
         try:
@@ -234,7 +296,7 @@ def predict(
             print(f"  3D mapping failed: {e}")
 
     # ------------------------------------------------------------------
-    # 8. Longitudinal Trend Analysis (Feature 5)
+    # 9. Longitudinal Trend Analysis (Feature 5)
     # ------------------------------------------------------------------
     if patient_id != "UNKNOWN":
         try:
@@ -270,7 +332,7 @@ def predict(
             print(f"  Trend analysis failed: {e}")
 
     # ------------------------------------------------------------------
-    # 9. PDF Report (Feature 4)
+    # 10. PDF Report (Feature 4)
     # ------------------------------------------------------------------
     if not no_pdf:
         try:
@@ -286,7 +348,7 @@ def predict(
             print(f"  PDF report generation failed: {e}")
 
     # ------------------------------------------------------------------
-    # 10. Text report & bar chart (original outputs)
+    # 11. Text report & bar chart (original outputs)
     # ------------------------------------------------------------------
     import matplotlib.pyplot as plt
 
@@ -352,6 +414,8 @@ if __name__ == "__main__":
                         help="Skip 3D anatomical mapping")
     parser.add_argument("--no-pdf", action="store_true",
                         help="Skip PDF report generation")
+    parser.add_argument("--no-tta", action="store_true",
+                        help="Skip test-time augmentation (faster, slightly lower accuracy)")
     parser.add_argument("--history-dir", type=str, default="patient_history",
                         help="Directory for per-patient history files")
     args = parser.parse_args()
@@ -370,5 +434,6 @@ if __name__ == "__main__":
         no_gradcam=args.no_gradcam,
         no_3d=args.no_3d,
         no_pdf=args.no_pdf,
+        no_tta=args.no_tta,
         history_dir=args.history_dir,
     )

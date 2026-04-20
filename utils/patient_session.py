@@ -37,6 +37,11 @@ class PatientSession:
     overlay_paths: dict = dataclasses.field(default_factory=dict)   # label -> file path
     peak_coordinates: dict = dataclasses.field(default_factory=dict)  # label -> (row, col)
 
+    # --- Device detection & localization quality (Tasks 2, 5, 6) ---
+    device_detected: bool = False                                     # medical devices present in image
+    localization_scores: dict = dataclasses.field(default_factory=dict)   # label -> float [0,1]
+    device_overlap_flags: dict = dataclasses.field(default_factory=dict)  # label -> bool
+
     # --- 3D mapping outputs (Feature 3) ---
     findings_3d: dict = dataclasses.field(default_factory=dict)     # label -> (x, y, z)
 

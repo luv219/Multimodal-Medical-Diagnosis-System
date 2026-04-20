@@ -1,23 +1,32 @@
 """
-Grad-CAM visualiser for ImageOnlyModel (and compatible single-input models).
+Grad-CAM++ visualiser for ImageOnlyModel (and compatible single-input models).
 
-Uses raw PyTorch forward/backward hooks — the model class is never modified.
-This module is independent of the ``pytorch_grad_cam`` library used in
-``utils/gradcam.py`` (which targets the multimodal REFLACX pipeline).
+Upgrades over vanilla Grad-CAM (Task 6a):
+  • Uses GradCAM++ (Chattopadhyay et al. 2018) via the ``pytorch_grad_cam``
+    library when available.  Falls back to hand-rolled vanilla Grad-CAM when
+    the library is not installed.
+  • GradCAM++ handles multiple activations of the same class and gives tighter
+    localisation on small or diffuse findings.
 
-Mathematical formulation (Grad-CAM, Selvaraju et al. 2017)
------------------------------------------------------------
-Given a convolutional feature map A^k (k = 1 … K channels) at the target
-layer and the scalar class logit y^c:
+New in this version (Task 6b):
+  • :func:`generate_all_heatmaps` now returns a ``"localization_scores"`` key
+    containing a per-label anatomical localisation score (0–1) computed by
+    :func:`inference_utils.compute_localization_score`.
 
-1.  α_k = (1 / Z) Σ_i Σ_j  ∂y^c / ∂A^k_{ij}      (global-average-pooled gradient)
-2.  L   = ReLU( Σ_k  α_k · A^k )                    (weighted combination, clamped)
-3.  L   = upsample(L, input_spatial_size)             (bilinear resize to input dims)
-4.  L   = L / max(L)                                  (normalise to [0, 1])
+Mathematical formulation (Grad-CAM++, Chattopadhyay et al. 2018)
+-----------------------------------------------------------------
+For feature map A^k and class score y^c:
+
+    α_k^c  =  Σ_{i,j} [∂²y^c / ∂(A^k_{ij})²]
+              ─────────────────────────────────────────────────
+              2·∂²y^c/∂(A^k_{ij})² + Σ_{i',j'} A^k_{i'j'} · ∂y^c/∂(A^k_{ij})
+
+    L^{c,++} = ReLU( Σ_k  α_k^c · A^k )
 """
 
 from __future__ import annotations
 
+import logging
 import os
 from typing import Optional
 
@@ -28,6 +37,95 @@ import torch.nn.functional as F
 from PIL import Image
 from torchvision import transforms
 
+logger = logging.getLogger(__name__)
+
+
+# ---------------------------------------------------------------------------
+# GradCAM++ via pytorch_grad_cam (preferred) with vanilla fallback
+# ---------------------------------------------------------------------------
+
+def _generate_gradcam_pp(
+    model: torch.nn.Module,
+    input_tensor: torch.Tensor,
+    target_class_idx: int,
+    target_layer: torch.nn.Module,
+    device: str,
+) -> np.ndarray:
+    """GradCAM++ using the pytorch_grad_cam library."""
+    from pytorch_grad_cam import GradCAMPlusPlus
+    from pytorch_grad_cam.utils.model_targets import ClassifierOutputTarget
+
+    with GradCAMPlusPlus(model=model, target_layers=[target_layer]) as cam:
+        targets = [ClassifierOutputTarget(target_class_idx)]
+        grayscale_cam = cam(
+            input_tensor=input_tensor.to(device),
+            targets=targets,
+        )
+    # cam returns shape (B, H, W); take first element
+    heatmap = grayscale_cam[0]
+    cam_max = heatmap.max()
+    if cam_max > 0:
+        heatmap = heatmap / cam_max
+    return heatmap.astype(np.float32)
+
+
+def _generate_gradcam_vanilla(
+    model: torch.nn.Module,
+    input_tensor: torch.Tensor,
+    target_class_idx: int,
+    target_layer: torch.nn.Module,
+    device: str,
+) -> np.ndarray:
+    """Vanilla Grad-CAM fallback using raw PyTorch hooks.
+
+    Mathematical formulation (Selvaraju et al. 2017):
+      α_k = global-average-pool(∂y^c / ∂A^k)
+      L   = ReLU(Σ_k  α_k · A^k), then upsampled to input resolution.
+    """
+    model.eval()
+    input_tensor = input_tensor.to(device)
+
+    activations: list[torch.Tensor] = []
+    gradients: list[torch.Tensor] = []
+    hook_handles: list = []
+
+    def _fwd_hook(_module, _inp, out):
+        feat = out[0] if isinstance(out, tuple) else out
+        activations.append(feat.detach().clone())
+
+        def _tensor_bw(grad):
+            gradients.append(grad.detach().clone())
+
+        hook_handles.append(feat.register_hook(_tensor_bw))
+
+    handle_fwd = target_layer.register_forward_hook(_fwd_hook)
+
+    try:
+        inp = input_tensor.clone().requires_grad_(True)
+        with torch.enable_grad():
+            logits = model(inp)
+            score = logits[0, target_class_idx]
+            model.zero_grad()
+            score.backward()
+    finally:
+        handle_fwd.remove()
+        for h in hook_handles:
+            h.remove()
+
+    act = activations[0]       # (1, K, h, w)
+    grad = gradients[0]        # (1, K, h, w)
+    weights = grad.mean(dim=(2, 3), keepdim=True)
+
+    cam = F.relu((weights * act).sum(dim=1, keepdim=True))
+    cam = F.interpolate(
+        cam, size=input_tensor.shape[2:], mode="bilinear", align_corners=False
+    )
+    cam = cam.squeeze().float().cpu().numpy()
+    cam_max = cam.max()
+    if cam_max > 0:
+        cam = cam / cam_max
+    return cam
+
 
 # ---------------------------------------------------------------------------
 # Internal helpers
@@ -37,26 +135,24 @@ def _detect_target_layer(model: torch.nn.Module) -> torch.nn.Module:
     """Auto-detect the last convolutional feature-map layer.
 
     Supports:
-      - ImageOnlyModel with DenseNet121 backbone  → ``backbone.features[-1]``
-      - ImageOnlyModel with ResNet50 backbone      → ``backbone.layer4[-1]``
+    • ``ImageOnlyModel`` with DenseNet121 — ``backbone.features[-1]``
+    • ``ImageOnlyModel`` with ResNet50   — ``backbone.layer4[-1]``
     """
     backbone = getattr(model, "backbone", model)
 
-    # DenseNet variants expose a ``features`` Sequential
-    if hasattr(backbone, "features"):
+    if hasattr(backbone, "features"):      # DenseNet
         return backbone.features[-1]
-
-    # ResNet variants expose ``layer4``
-    if hasattr(backbone, "layer4"):
+    if hasattr(backbone, "layer4"):        # ResNet
         return backbone.layer4[-1]
 
     raise RuntimeError(
-        "Cannot auto-detect target layer. Pass it explicitly via ``target_layer``."
+        "Cannot auto-detect target layer for GradCAM. Pass it explicitly via "
+        "``target_layer``."
     )
 
 
 # ---------------------------------------------------------------------------
-# Core Grad-CAM
+# Public Grad-CAM entry point
 # ---------------------------------------------------------------------------
 
 def generate_gradcam(
@@ -66,84 +162,49 @@ def generate_gradcam(
     target_layer: Optional[torch.nn.Module] = None,
     device: str = "cpu",
 ) -> np.ndarray:
-    """Compute the Grad-CAM heatmap for a single class.
+    """Compute the GradCAM++ heatmap for a single class.
+
+    Tries ``pytorch_grad_cam.GradCAMPlusPlus`` first; falls back to vanilla
+    Grad-CAM when the library is unavailable.
 
     Parameters
     ----------
     model : nn.Module
-        The model in ``eval()`` mode.
+        Model in ``eval()`` mode.
     input_tensor : Tensor
-        Pre-processed image tensor of shape ``(1, C, H, W)``.
+        Pre-processed image, shape ``(1, C, H, W)``.
     target_class_idx : int
         Index of the target class in the logit vector.
     target_layer : nn.Module, optional
-        Layer to hook.  Auto-detected when *None*.
+        Layer to hook.  Auto-detected when ``None``.
     device : str
         ``"cpu"`` or ``"cuda"``.
 
     Returns
     -------
     np.ndarray
-        2-D array of shape ``(H_input, W_input)`` with values in ``[0, 1]``.
+        2-D heatmap ``(H_input, W_input)`` in ``[0, 1]``.
     """
     if target_layer is None:
         target_layer = _detect_target_layer(model)
 
     model.eval()
-    input_tensor = input_tensor.to(device).requires_grad_(False)
-
-    # Containers for the hook data
-    activations: list[torch.Tensor] = []
-    gradients: list[torch.Tensor] = []
-    tensor_hook_handles: list = []
-
-    def _fwd_hook(_module, _inp, out):
-        feat = out[0] if isinstance(out, tuple) else out
-        activations.append(feat.detach().clone())
-
-        def _tensor_bw_hook(grad):
-            gradients.append(grad.detach().clone())
-
-        tensor_hook_handles.append(feat.register_hook(_tensor_bw_hook))
-
-    handle_fwd = target_layer.register_forward_hook(_fwd_hook)
 
     try:
-        # Forward — need grad for backward pass
-        input_grad = input_tensor.clone().requires_grad_(True)
-        with torch.enable_grad():
-            logits = model(input_grad)
-            score = logits[0, target_class_idx]
-            model.zero_grad()
-            score.backward()
-    finally:
-        handle_fwd.remove()
-        for h in tensor_hook_handles:
-            h.remove()
+        cam = _generate_gradcam_pp(model, input_tensor, target_class_idx, target_layer, device)
+        logger.debug("Used GradCAM++ (pytorch_grad_cam) for class %d", target_class_idx)
+    except ImportError:
+        logger.warning(
+            "pytorch_grad_cam not installed — falling back to vanilla Grad-CAM. "
+            "Install with: pip install grad-cam"
+        )
+        cam = _generate_gradcam_vanilla(model, input_tensor, target_class_idx, target_layer, device)
 
-    # α_k = global-average-pool of the gradient for each channel
-    act = activations[0]     # (1, K, h, w)
-    grad = gradients[0]      # (1, K, h, w)
-    weights = grad.mean(dim=(2, 3), keepdim=True)  # (1, K, 1, 1)
-
-    # Weighted combination + ReLU
-    cam = (weights * act).sum(dim=1, keepdim=True)  # (1, 1, h, w)
-    cam = F.relu(cam)
-
-    # Upsample to input spatial size
-    cam = F.interpolate(
-        cam, size=input_tensor.shape[2:], mode="bilinear", align_corners=False
-    )
-
-    cam = cam.squeeze().float().cpu().numpy()
-    cam_max = cam.max()
-    if cam_max > 0:
-        cam = cam / cam_max
     return cam
 
 
 # ---------------------------------------------------------------------------
-# Overlay & peak detection
+# Overlay & peak detection (unchanged API)
 # ---------------------------------------------------------------------------
 
 def overlay_heatmap(
@@ -152,14 +213,14 @@ def overlay_heatmap(
     colormap: int = cv2.COLORMAP_JET,
     alpha: float = 0.4,
 ) -> np.ndarray:
-    """Blend a Grad-CAM heatmap onto the original image.
+    """Blend a Grad-CAM++ heatmap onto the original image.
 
     Parameters
     ----------
     original_image : PIL.Image
         The *unprocessed* chest X-ray.
     heatmap : np.ndarray
-        2-D array in ``[0, 1]`` (from :func:`generate_gradcam`).
+        2-D array in ``[0, 1]`` from :func:`generate_gradcam`.
     colormap : int
         OpenCV colourmap constant (default ``cv2.COLORMAP_JET``).
     alpha : float
@@ -168,15 +229,14 @@ def overlay_heatmap(
     Returns
     -------
     np.ndarray
-        RGB array of shape ``(H, W, 3)`` with dtype ``uint8``.
+        RGB array ``(H, W, 3)`` dtype ``uint8``.
     """
     img_rgb = np.array(original_image.convert("RGB"))
     h, w = img_rgb.shape[:2]
 
-    # Resize heatmap to original image dimensions
     heatmap_resized = cv2.resize(heatmap, (w, h))
-    heatmap_uint8 = (heatmap_resized * 255).astype(np.uint8)
-    heatmap_colour = cv2.applyColorMap(heatmap_uint8, colormap)
+    heatmap_u8 = (heatmap_resized * 255).astype(np.uint8)
+    heatmap_colour = cv2.applyColorMap(heatmap_u8, colormap)
     heatmap_colour = cv2.cvtColor(heatmap_colour, cv2.COLOR_BGR2RGB)
 
     blended = (
@@ -190,12 +250,12 @@ def find_peak_activation(
     heatmap: np.ndarray,
     original_image_size: tuple[int, int],
 ) -> tuple[int, int]:
-    """Return the ``(row, col)`` of peak activation in original-image pixel space.
+    """Return ``(row, col)`` of peak activation in original-image pixel space.
 
     Parameters
     ----------
     heatmap : np.ndarray
-        2-D heatmap from :func:`generate_gradcam` (model-input resolution).
+        2-D heatmap at model-input resolution.
     original_image_size : tuple[int, int]
         ``(height, width)`` of the original image before pre-processing.
 
@@ -212,7 +272,7 @@ def find_peak_activation(
 
 
 # ---------------------------------------------------------------------------
-# High-level convenience
+# High-level convenience — now also returns localization_scores
 # ---------------------------------------------------------------------------
 
 def generate_all_heatmaps(
@@ -225,7 +285,7 @@ def generate_all_heatmaps(
     device: str = "cpu",
     output_dir: Optional[str] = None,
 ) -> dict:
-    """Generate Grad-CAM outputs for every class above *threshold*.
+    """Generate GradCAM++ outputs for every class above *threshold*.
 
     Parameters
     ----------
@@ -234,24 +294,28 @@ def generate_all_heatmaps(
     image_path : str
         Path to the original chest X-ray.
     prob_dict : dict
-        ``{label: probability}`` as produced by the inference step.
+        ``{label: probability}`` from inference.
     label_names : list[str]
-        Ordered list of class labels matching the model's logit indices.
+        Ordered class labels matching logit output indices.
     transform : torchvision.transforms.Compose
         The same pre-processing pipeline used for inference.
     threshold : float
-        Minimum probability to generate a heatmap for a class.
+        Minimum probability to generate a heatmap.
     device : str
         ``"cpu"`` or ``"cuda"``.
     output_dir : str, optional
-        Directory to save overlay images.  Skipped when *None*.
+        Directory to save overlay images.
 
     Returns
     -------
     dict
-        ``{"heatmaps": {label: ndarray}, "overlays": {label: ndarray},
-          "overlay_paths": {label: str}, "peaks": {label: (row, col)}}``
+        Keys: ``"heatmaps"``, ``"overlays"``, ``"overlay_paths"``,
+        ``"peaks"``, ``"localization_scores"``.
+        ``localization_scores`` maps each label to a float in [0, 1]
+        indicating how well the activation aligns with expected anatomy.
     """
+    from utils.inference_utils import compute_localization_score
+
     original_image = Image.open(image_path).convert("RGB")
     img_tensor = transform(original_image).unsqueeze(0).to(device)
     orig_size = (original_image.height, original_image.width)
@@ -262,15 +326,23 @@ def generate_all_heatmaps(
     overlays: dict[str, np.ndarray] = {}
     overlay_paths: dict[str, str] = {}
     peaks: dict[str, tuple] = {}
+    localization_scores: dict[str, float] = {}
 
     for label, prob in prob_dict.items():
         if prob < threshold:
             continue
         class_idx = label_names.index(label)
         cam = generate_gradcam(model, img_tensor, class_idx, target_layer, device)
+
         heatmaps[label] = cam
         overlays[label] = overlay_heatmap(original_image, cam)
         peaks[label] = find_peak_activation(cam, orig_size)
+        localization_scores[label] = compute_localization_score(cam, label)
+
+        logger.info(
+            "GradCAM++ %s: peak=%s  localisation=%.2f",
+            label, peaks[label], localization_scores[label],
+        )
 
         if output_dir is not None:
             os.makedirs(output_dir, exist_ok=True)
@@ -283,4 +355,5 @@ def generate_all_heatmaps(
         "overlays": overlays,
         "overlay_paths": overlay_paths,
         "peaks": peaks,
+        "localization_scores": localization_scores,
     }
