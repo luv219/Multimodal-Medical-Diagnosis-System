@@ -133,7 +133,7 @@ def train():
 
     scaler = torch.amp.GradScaler("cuda") if DEVICE == "cuda" else None
 
-    os.makedirs("results", exist_ok=True)
+    os.makedirs("results", mode=0o750, exist_ok=True)
     best_val_auc = 0
 
     for epoch in range(NUM_EPOCHS):

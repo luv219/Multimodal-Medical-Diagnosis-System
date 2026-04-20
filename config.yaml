@@ -50,7 +50,7 @@ reflacx:
   image_size: 256
   model_dim: 32
   embedding_dim: 64
-  dropout: 0.2
+  dropout: 0.35             # Increased from 0.2 to reduce overfitting on small REFLACX dataset
   pretrained: true
   detach_image: false
   use_clinical: true

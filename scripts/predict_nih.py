@@ -17,6 +17,7 @@ pipeline works with only PyTorch and Pillow.
 import argparse
 import json
 import os
+import re
 import sys
 
 import torch
@@ -78,10 +79,10 @@ def predict(
     DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 
     if not os.path.exists(image_path):
-        print(f"Error: Image not found at {image_path}")
+        print(f"Error: Image not found at '{os.path.basename(image_path)}'")
         return
     if not os.path.exists(model_path):
-        print(f"Error: Model weights not found at {model_path}. Please train the model first.")
+        print(f"Error: Model weights not found (path: '{os.path.basename(model_path)}'). Please train the model first.")
         return
 
     # ------------------------------------------------------------------
@@ -132,16 +133,38 @@ def predict(
     # ------------------------------------------------------------------
     # 4. Parse metadata (if provided)
     # ------------------------------------------------------------------
+    def _validate_metadata(raw: dict) -> dict:
+        validated = {}
+        age = raw.get("age")
+        if age is not None:
+            if not isinstance(age, (int, float)) or not (0 <= age <= 150):
+                raise ValueError(f"Invalid age: {age!r}")
+            validated["age"] = age
+        gender = raw.get("gender")
+        if gender is not None:
+            if not isinstance(gender, str) or gender not in ("M", "F", "Other", "Unknown"):
+                raise ValueError(f"Invalid gender: {gender!r}")
+            validated["gender"] = gender
+        symptoms = raw.get("symptoms")
+        if symptoms is not None:
+            if not isinstance(symptoms, list):
+                raise ValueError("symptoms must be a list")
+            if len(symptoms) > 20:
+                raise ValueError("Too many symptoms (max 20)")
+            validated["symptoms"] = [str(s)[:100] for s in symptoms if isinstance(s, str)]
+        return validated
+
     metadata = None
     if metadata_json:
         try:
             if os.path.isfile(metadata_json):
                 with open(metadata_json) as f:
-                    metadata = json.load(f)
+                    raw_meta = json.load(f)
             else:
-                metadata = json.loads(metadata_json)
-        except (json.JSONDecodeError, OSError) as e:
-            print(f"Warning: Could not parse metadata: {e}")
+                raw_meta = json.loads(metadata_json)
+            metadata = _validate_metadata(raw_meta)
+        except (json.JSONDecodeError, OSError, ValueError) as e:
+            print(f"Warning: Could not parse or validate metadata: {e}")
 
     # ------------------------------------------------------------------
     # 5. Create PatientSession
@@ -156,7 +179,7 @@ def predict(
 
     file_prefix = os.path.splitext(os.path.basename(image_path))[0]
     out_dir = os.path.join(os.path.dirname(model_path), f"{file_prefix}_inference")
-    os.makedirs(out_dir, exist_ok=True)
+    os.makedirs(out_dir, mode=0o750, exist_ok=True)
 
     # ------------------------------------------------------------------
     # 6. Grad-CAM (Feature 1)
@@ -332,6 +355,12 @@ if __name__ == "__main__":
     parser.add_argument("--history-dir", type=str, default="patient_history",
                         help="Directory for per-patient history files")
     args = parser.parse_args()
+
+    _PATIENT_ID_RE = re.compile(r'^[A-Za-z0-9_\-]{1,64}$')
+    if args.patient_id != "UNKNOWN" and not _PATIENT_ID_RE.match(args.patient_id):
+        print(f"Error: --patient-id contains invalid characters: {args.patient_id!r}")
+        sys.exit(1)
+    args.history_dir = os.path.realpath(os.path.abspath(args.history_dir))
 
     predict(
         image_path=args.image_path,

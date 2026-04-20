@@ -5,7 +5,7 @@ import torch.nn as nn
 import numpy as np
 
 # from model.densenet import densenet121
-from torchvision.models import densenet121
+from torchvision.models import densenet121, DenseNet121_Weights
 
 
 class REFLACXClincalNet(nn.Module):
@@ -112,7 +112,8 @@ class ClinicalNet(nn.Module):
 class ImageDenseNet(nn.Module):
     def __init__(self, num_output_features, pretrained=False):
         super(ImageDenseNet, self).__init__()
-        self.model_ft = densenet121(pretrained=pretrained, drop_rate=0)
+        _weights = DenseNet121_Weights.DEFAULT if pretrained else None
+        self.model_ft = densenet121(weights=_weights, drop_rate=0)
         num_ftrs = self.model_ft.classifier.in_features
         self.model_ft.classifier = nn.Linear(num_ftrs, num_output_features)
 

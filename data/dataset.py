@@ -55,10 +55,18 @@ class REFLACXWithClinicalDataset(data.Dataset):
 
         # Support path override: set XAMI_MIMIC_PATH env var if your data is elsewhere
         # e.g. export XAMI_MIMIC_PATH=E:\MIMIC-Data
+        HARDCODED_PREFIX = r'D:\XAMI-MIMIC'
         path_override = os.environ.get('XAMI_MIMIC_PATH')
         if path_override:
             self.df['image_path'] = self.df['image_path'].apply(
-                lambda p: p.replace(r'D:\XAMI-MIMIC', path_override).replace('D:/XAMI-MIMIC', path_override)
+                lambda p: p.replace(HARDCODED_PREFIX, path_override).replace('D:/XAMI-MIMIC', path_override)
+            )
+        elif self.df['image_path'].str.startswith(HARDCODED_PREFIX).any():
+            raise EnvironmentError(
+                "Dataset CSV contains paths under 'D:\\XAMI-MIMIC' but XAMI_MIMIC_PATH "
+                "environment variable is not set. "
+                "Set it to your local MIMIC data root, e.g.: "
+                "set XAMI_MIMIC_PATH=E:\\path\\to\\mimic-data"
             )
         self.clinical_cols = clinical_cols
         self.clinical_numerical_cols = clinical_numerical_cols
@@ -72,6 +80,8 @@ class REFLACXWithClinicalDataset(data.Dataset):
         train_transforms_lst = [
             transforms.Resize((self.image_size, self.image_size)),
             transforms.RandomHorizontalFlip() if horizontal_flip else None,
+            transforms.RandomRotation(10),
+            transforms.ColorJitter(brightness=0.2, contrast=0.2),
             transforms.ToTensor(),
             normalize,
         ]

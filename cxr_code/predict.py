@@ -27,7 +27,7 @@ class Struct:
 
 def load_model(args, load_path, nclasses):
     model = DenseNet(args, nclasses)
-    model.load_state_dict(torch.load(load_path))
+    model.load_state_dict(torch.load(load_path, map_location="cpu", weights_only=True))
     model = model.cuda()
     model.eval()
     return model

@@ -187,6 +187,12 @@ def train_with_chexnext(
             best_loss = val_loss
             best_model_wts = model.state_dict()
             counter = 0
+            os.makedirs("saved_models", mode=0o750, exist_ok=True)
+            checkpoint_path = os.path.join(
+                "saved_models", f"best_chexnext_epoch{epoch}_valloss{val_loss:.4f}.pth"
+            )
+            torch.save(best_model_wts, checkpoint_path)
+            print(f"  Checkpoint saved: {checkpoint_path}")
 
         else:
             counter += 1
@@ -244,6 +250,14 @@ def train_with_auc_margin_loss(
     lr=0.1,
     model_note="",
 ):
+    import warnings
+    warnings.warn(
+        "train_with_auc_margin_loss uses deprecated libauc v1 API (AUCM_MultiLabel/PESG). "
+        "In libauc>=2.0, use: from libauc.losses import AUCMLoss; from libauc.optimizers import PESG. "
+        "This function will be removed in a future version.",
+        DeprecationWarning,
+        stacklevel=2,
+    )
 
     train_dataloader, val_dataloader, test_dataloader = dataloaders
 

@@ -2,11 +2,21 @@ from data.paths import *
 
 import os
 import pathlib
+import re
 
 import pandas as pd
 import numpy as np
 
 from PIL import Image
+
+_SAFE_PATH_COMPONENT_RE = re.compile(r'^[A-Za-z0-9_\-\.]{1,128}$')
+
+
+def _validate_id(value: str, field_name: str) -> str:
+    s = str(value)
+    if not _SAFE_PATH_COMPONENT_RE.match(s):
+        raise ValueError(f"Unsafe {field_name} value {s!r}. Only alphanumerics, hyphens, underscores, and dots are permitted.")
+    return s
 
 
 class MIMICDataloader():
@@ -63,20 +73,42 @@ class MIMICDataloader():
 
         return ids
 
+    def _assert_within_base(self, path: str) -> str:
+        base = os.path.realpath(self.XAMI_MIMIC_PATH)
+        resolved = os.path.realpath(path)
+        if not (resolved == base or resolved.startswith(base + os.sep)):
+            raise ValueError(f"Path escape detected: {resolved!r} is outside base {base!r}")
+        return path
+
     def get_image_path(self, patient_id, study_id, dicom_id):
-        return os.path.join(self.XAMI_MIMIC_PATH, f"patient_{patient_id}", "CXR-JPG", f"s{study_id}", f"{dicom_id}.jpg")
+        _validate_id(patient_id, "patient_id")
+        _validate_id(study_id, "study_id")
+        _validate_id(dicom_id, "dicom_id")
+        path = os.path.join(self.XAMI_MIMIC_PATH, f"patient_{patient_id}", "CXR-JPG", f"s{study_id}", f"{dicom_id}.jpg")
+        return self._assert_within_base(path)
 
     def get_reflacx_report_text_path(self, patient_id, reflacx_id):
-        return os.path.join(self.XAMI_MIMIC_PATH, f"patient_{patient_id}", "REFLACX", reflacx_id, "transcription.txt")
+        _validate_id(patient_id, "patient_id")
+        _validate_id(reflacx_id, "reflacx_id")
+        path = os.path.join(self.XAMI_MIMIC_PATH, f"patient_{patient_id}", "REFLACX", reflacx_id, "transcription.txt")
+        return self._assert_within_base(path)
 
-    def get_reflacx_eye_tracking_path(self,  patient_id, reflacx_id):
-        return os.path.join(self.XAMI_MIMIC_PATH, f"patient_{patient_id}", "REFLACX", reflacx_id, "fixations.csv")
+    def get_reflacx_eye_tracking_path(self, patient_id, reflacx_id):
+        _validate_id(patient_id, "patient_id")
+        _validate_id(reflacx_id, "reflacx_id")
+        path = os.path.join(self.XAMI_MIMIC_PATH, f"patient_{patient_id}", "REFLACX", reflacx_id, "fixations.csv")
+        return self._assert_within_base(path)
 
     def get_relfacx_eye_gaze_path(self, reflacx_id):
-        return os.path.join(self.XAMI_MIMIC_PATH, "spreadsheets", "REFLACX", "gaze_data", reflacx_id, "gaze.csv")
+        _validate_id(reflacx_id, "reflacx_id")
+        path = os.path.join(self.XAMI_MIMIC_PATH, "spreadsheets", "REFLACX", "gaze_data", reflacx_id, "gaze.csv")
+        return self._assert_within_base(path)
 
     def get_cxr_report_text_path(self, patient_id, study_id):
-        return os.path.join(self.XAMI_MIMIC_PATH, f"patient_{patient_id}", "CXR-DICOM", f"s{study_id}")
+        _validate_id(patient_id, "patient_id")
+        _validate_id(study_id, "study_id")
+        path = os.path.join(self.XAMI_MIMIC_PATH, f"patient_{patient_id}", "CXR-DICOM", f"s{study_id}")
+        return self._assert_within_base(path)
 
     def get_data(self, dicom_ids, tabular_data_paths, load_image=True, load_report_text="reflacx"):
 

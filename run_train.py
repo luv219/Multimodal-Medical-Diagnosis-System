@@ -7,6 +7,9 @@ import sys
 # Add project root to path
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
+import random
+
+import numpy as np
 import torch
 import torch.optim as optim
 from torch.optim import lr_scheduler
@@ -14,8 +17,20 @@ from data.dataset import REFLACXWithClinicalDataset
 from model.xami import XAMIMultiConcatModal
 from utils.train import split_dataset, train_with_chexnext
 
+SEED = 123
+
+
+def set_seeds(seed: int) -> None:
+    random.seed(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+    if torch.cuda.is_available():
+        torch.cuda.manual_seed_all(seed)
+
 
 def main():
+    set_seeds(SEED)
+
     # Device setup
     use_gpu = torch.cuda.is_available()
     device = "cuda" if use_gpu else "cpu"

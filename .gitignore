@@ -25,6 +25,14 @@ __pycache__/
 # Binaries
 *.exe
 
+# Patient data — sensitive, must not be committed
+/patient_history/
+patient_history/
+
+# Model weight files (large binaries)
+*.pth
+*.pt
+
 # Generated/temp files
 tree.txt
 csv_files*.txt

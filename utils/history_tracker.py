@@ -47,8 +47,29 @@ from __future__ import annotations
 
 import json
 import os
+import re
 from datetime import datetime
 from typing import Optional
+
+_PATIENT_ID_RE = re.compile(r'^[A-Za-z0-9_\-]{1,64}$')
+
+
+def _sanitize_patient_id(patient_id: str) -> str:
+    if not _PATIENT_ID_RE.match(patient_id):
+        raise ValueError(
+            f"Invalid patient_id {patient_id!r}. "
+            "Must contain only alphanumerics, hyphens, or underscores (1–64 chars)."
+        )
+    return patient_id
+
+
+def _assert_within_base(path: str, base: str) -> str:
+    resolved = os.path.realpath(path)
+    base_resolved = os.path.realpath(base)
+    if not (resolved == base_resolved or resolved.startswith(base_resolved + os.sep)):
+        raise ValueError(f"Path escape detected: {resolved!r} is outside {base_resolved!r}")
+    return path
+
 
 SEVERITY_WEIGHTS: dict[str, float] = {
     "Atelectasis": 0.8,
@@ -67,7 +88,10 @@ def load_patient_history(
 
     Returns an empty structure if the file does not exist.
     """
+    patient_id = _sanitize_patient_id(patient_id)
+    history_dir = os.path.realpath(os.path.abspath(history_dir))
     path = os.path.join(history_dir, f"{patient_id}.json")
+    _assert_within_base(path, history_dir)
     if not os.path.exists(path):
         return {"patient_id": patient_id, "records": []}
     with open(path, "r") as f:
@@ -87,13 +111,16 @@ def save_session_to_history(
     history_dir : str
         Root directory for patient JSON files.
     """
-    os.makedirs(history_dir, exist_ok=True)
+    _sanitize_patient_id(session.patient_id)
+    history_dir = os.path.realpath(os.path.abspath(history_dir))
+    os.makedirs(history_dir, mode=0o700, exist_ok=True)
     history = load_patient_history(session.patient_id, history_dir)
 
     record = session.to_serializable()
     history["records"].append(record)
 
     path = os.path.join(history_dir, f"{session.patient_id}.json")
+    _assert_within_base(path, history_dir)
     with open(path, "w") as f:
         json.dump(history, f, indent=2)
 
@@ -216,6 +243,7 @@ def generate_trend_chart(
     """
     import matplotlib.pyplot as plt
 
+    patient_id = _sanitize_patient_id(patient_id)
     history = load_patient_history(patient_id, history_dir)
     records = history.get("records", [])
     if len(records) < 2:
