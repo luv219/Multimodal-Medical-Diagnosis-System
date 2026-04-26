@@ -17,7 +17,7 @@ nih:
   num_epochs: 15           # Increased to compensate for smaller batch
   lr: 0.00007              # Scaled with batch (linear scaling rule)
   weight_decay: 0.0001
-  seed: 123
+  seed: 125
 
   num_classes: 5
   label_names:
